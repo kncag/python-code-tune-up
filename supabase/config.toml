@@ -1,0 +1,19 @@
+project_id = "epcvrzjexfbgwrzsmeof"
+
+[functions.process-pre-bcp-txt]
+verify_jwt = false
+
+[functions.process-pre-bcp-xlsx]
+verify_jwt = false
+
+[functions.process-rechazo-ibk]
+verify_jwt = false
+
+[functions.process-post-bcp-xlsx]
+verify_jwt = false
+
+[functions.generate-excel]
+verify_jwt = false
+
+[functions.send-to-endpoint]
+verify_jwt = false
