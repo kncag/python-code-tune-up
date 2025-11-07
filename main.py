@@ -256,7 +256,6 @@ with tab_boleta:
         # 2. Usar st.data_editor y guardar su estado en su propia clave
         st.data_editor(
             df_historial_boleta, 
-            num_rows_dynamic=False,
             key="historial_boleta_editor" # Clave única para esta tabla
         )
     # --- FIN DE LA MEJORA ---
@@ -423,7 +422,6 @@ with tab_lqbs:
         # 2. Usar st.data_editor y guardar su estado
         st.data_editor(
             df_historial_lqbs, 
-            num_rows_dynamic=False,
             key="historial_lqbs_editor" # Clave única
         )
     # --- FIN DE LA MEJORA ---
