@@ -245,10 +245,9 @@ with tab_boleta:
             in_sueldo_basico = st.number_input("Sueldo Básico Nominal", min_value=0.0, value=5300.0, step=100.0)
             in_tiene_hijos = st.checkbox("¿Tiene Hijos? (Asig. Familiar)", value=False)
             in_sistema_pension = st.selectbox("Sistema de Pensión", 
-                                              SISTEMAS_PENSION, # Usando la constante importada
-                                              index=1)
+                                              SISTEMAS_PENSION, index=1)
             in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True)
-
+            # Usando la constante importada
         with col2:
             st.subheader("Datos del Mes")
             
