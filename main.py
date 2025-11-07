@@ -246,15 +246,15 @@ with tab_boleta:
             in_tiene_hijos = st.checkbox("¿Tiene Hijos? (Asig. Familiar)", value=False)
             in_sistema_pension = st.selectbox("Sistema de Pensión", 
                                               SISTEMAS_PENSION, # Usando la constante importada
-                                              index=1) # <- ¡Error corregido! El texto extra fue eliminado.
-            in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True)
-            in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True)
-            # Usando la constante importada
+                                              index=1,
+                                              key="boleta_pension") # <- CLAVE AÑADIDA
+            in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True, key="boleta_eps") # <- CLAVE AÑADIDA
+
         with col2:
             st.subheader("Datos del Mes")
             
             # --- MEJORA: Selectbox para el mes ---
-            in_mes_nombre = st.selectbox("Mes de Cálculo", options=MESES_LISTA, index=0)
+            in_mes_nombre = st.selectbox("Mes de Cálculo", options=MESES_LISTA, index=0, key="boleta_mes_nombre") # <- CLAVE AÑADIDA
             in_mes_actual = MESES_LISTA.index(in_mes_nombre) + 1 # Convertir a 1-12
             
             in_dias_falta = st.number_input("Días de Falta Injustificada", min_value=0, max_value=30, value=0, step=1)
@@ -286,11 +286,11 @@ with tab_boleta:
         # --- Expanders para datos complejos ---
         with st.expander("Gastos Deducibles (3 UIT Anuales)"):
             st.caption("Ingrese el total gastado en el año. El sistema calculará el % deducible.")
-            in_gastos_restaurantes = st.number_input("Gastos en Restaurantes y Hoteles (15%)", min_value=0.0, value=6000.0, step=100.0)
-            in_gastos_alquiler = st.number_input("Gastos en Arrendamiento (30%)", min_value=0.0, value=0.0, step=100.0)
-            in_gastos_medicos = st.number_input("Gastos en Honorarios Médicos/Odont. (30%)", min_value=0.0, value=0.0, step=100.0)
-            in_gastos_profesionales = st.number_input("Gastos en Servicios Profesionales (30%)", min_value=0.0, value=0.0, step=100.0)
-            in_gastos_essalud_hogar = st.number_input("Gastos en EsSalud Trabajador del Hogar (100%)", min_value=0.0, value=0.0, step=100.0)
+            in_gastos_restaurantes = st.number_input("Gastos en Restaurantes y Hoteles (15%)", min_value=0.0, value=6000.0, step=100.0, key="boleta_rest") # <- CLAVE AÑADIDA
+            in_gastos_alquiler = st.number_input("Gastos en Arrendamiento (30%)", min_value=0.0, value=0.0, step=100.0, key="boleta_alq") # <- CLAVE AÑADIDA
+            in_gastos_medicos = st.number_input("Gastos en Honorarios Médicos/Odont. (30%)", min_value=0.0, value=0.0, step=100.0, key="boleta_med") # <- CLAVE AÑADIDA
+            in_gastos_profesionales = st.number_input("Gastos en Servicios Profesionales (30%)", min_value=0.0, value=0.0, step=100.0, key="boleta_prof") # <- CLAVE AÑADIDA
+            in_gastos_essalud_hogar = st.number_input("Gastos en EsSalud Trabajador del Hogar (100%)", min_value=0.0, value=0.0, step=100.0, key="boleta_hogar") # <- CLAVE AÑADIDA
 
         # --- MEJORA DE UX: Usar st.data_editor para el Historial Semestral ---
         with st.expander("Historial Semestral (Para Regularidad de Gratificación)"):
@@ -301,9 +301,9 @@ with tab_boleta:
 
         with st.expander("Acumuladores Anuales (Para Renta 5ta)"):
             st.info("Para un cálculo preciso, ingrese los montos acumulados de Enero hasta el mes *anterior* al que está calculando.")
-            in_acum_r5 = st.number_input("Acumulado Bruto Renta 5ta (Sin Grati)", min_value=0.0, value=0.0, step=1000.0)
-            in_acum_salud = st.number_input("Acumulado Base Afecta a Salud", min_value=0.0, value=0.0, step=1000.0)
-            in_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta Pagadas", min_value=0.0, value=0.0, step=100.0)
+            in_acum_r5 = st.number_input("Acumulado Bruto Renta 5ta (Sin Grati)", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_r5") # <- CLAVE AÑADIDA
+            in_acum_salud = st.number_input("Acumulado Base Afecta a Salud", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_salud") # <- CLAVE AÑADIDA
+            in_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta Pagadas", min_value=0.0, value=0.0, step=100.0, key="boleta_acum_ret") # <- CLAVE AÑADIDA
 
         # --- Botón de Envío ---
         submitted_boleta = st.form_submit_button("Calcular Boleta Mensual", type="primary")
