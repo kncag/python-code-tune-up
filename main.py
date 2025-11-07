@@ -393,8 +393,8 @@ with tab_lqbs:
 
         st.subheader("Regímenes Especiales y Faltas")
         col1, col2, col3 = st.columns(3)
-        in_lqbs_part_time = col1.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, CTS y Vacaciones serán 0.")
-        in_lqbs_pierde_record = col2.checkbox("¿Perdió Récord Vacacional?", value=False, help="Si marca esto, Vacaciones Truncas será 0.")
+        in_lqbs_part_time = col1.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, CTS y Vacaciones serán 0.", key="lqbs_part_time") # <- CLAVE AÑADIDA
+        in_lqbs_pierde_record = col2.checkbox("¿Perdió Récord Vacacional?", value=False, help="Si marca esto, Vacaciones Truncas será 0.", key="lqbs_pierde_record") # <- CLAVE AÑADIDA
         in_lqbs_faltas_sem_trunco = col3.number_input("Faltas en Semestre Trunco", min_value=0, value=5, step=1, help="Días de falta para descuento en Grati Trunca (1/180vo).")
 
         # --- MEJORA DE UX: Usar st.data_editor para el Historial Semestral ---
@@ -496,8 +496,8 @@ with tab_indemnizacion:
             
         with col2:
             st.subheader("Regímenes y Excepciones")
-            in_indv_part_time = st.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, el pago será 0.")
-            in_indv_pierde_record = st.checkbox("¿Perdió Récord Vacacional por Faltas?", value=False, help="Si marca esto, el pago será 0.")
+            in_indv_part_time = st.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, el pago será 0.", key="indv_part_time") # <- CLAVE AÑADIDA
+            in_indv_pierde_record = st.checkbox("¿Perdió Récord Vacacional por Faltas?", value=False, help="Si marca esto, el pago será 0.", key="indv_pierde_record") # <- CLAVE AÑADIDA
 
         # --- Botón de Envío ---
         submitted_indv = st.form_submit_button("Calcular Indemnización", type="primary")
