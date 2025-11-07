@@ -829,23 +829,7 @@ def _calcular_truncos_vacaciones(
     return vacas_truncas, meses_truncos, dias_truncos
 
 def _calcular_indemnizacion_despido(rc_indemnizacion: float, fecha_ingreso: datetime.date, fecha_cese: datetime.date) -> Tuple[float, int, int, int]:
-    """
-    Calcula la indemnización por despido arbitrario.
-    Base Legal: Art. 34 y 38, D.S. N° 003-97-TR (LPCL).
-    1.5 Remuneraciones por año completo (Tope 12 Remuneraciones).
-    Fracciones (meses/días) se pagan por dozavos y treintavos.
-    """
-    delta_total = _calcular_tiempo_servicio(fecha_ingreso, fecha_cese)
-    anios_completos = delta_total.years
-    meses_completos = delta_total.months
-    dias = delta_total.days
-    
-    # Cálculo por años completos (con tope)
-    remuneracion_por_anio = rc_indemnizacion * 1.5
-    indemnizacion_anios = min(remuneracion_por_anio * anios_completos, rc_indemnizacion * 12)
-    
-    # Cálculo por fracciones (meses y días) - SIN TOPE
-    indemnizacion_meses = (remuneracion_por_anio / 12) * meses_completos
+// ... existing code ...
     indemnizacion_dias = (remuneracion_por_anio / 12 / 30) * dias
     
     total_indemnizacion = indemnizacion_anios + indemnizacion_meses + indemnizacion_dias
@@ -853,26 +837,25 @@ def _calcular_indemnizacion_despido(rc_indemnizacion: float, fecha_ingreso: date
     return total_indemnizacion, anios_completos, meses_completos, dias
 
 def generar_liquidacion(
-    # --- Datos del Cese ---
+    # --- Datos del Cese (Requeridos) ---
     fecha_ingreso: datetime.date, 
     fecha_cese: datetime.date, 
     motivo_cese: str, # 'RENUNCIA', 'DESPIDO_ARBITRARIO', 'FALTA_GRAVE'
     
-    # --- (NUEVO) Regímenes Especiales ---
+    # --- Bases Computables (Requeridas) ---
+    rc_basica: float, # Sueldo + AF
+    historial_ultimos_6_meses_variables: Dict[str, List[float]],
+    ultimo_sexto_grati: float, # 1/6 de la última grati percibida
+    
+    # --- (NUEVO) Regímenes Especiales (Opcionales) ---
     es_part_time_lt_4h: bool = False,
     # (NUEVO) Flag manual por falta de data de asistencia anual
     ha_perdido_record_vacacional: bool = False,
     # (NUEVO) Faltas en el último semestre (para Grati Trunca)
-    dias_falta_en_semestre_trunco: int = 0,
-    
-    # --- Bases Computables (calculadas externamente) ---
-    rc_basica: float, # Sueldo + AF
-    historial_ultimos_6_meses_variables: Dict[str, List[float]],
-    ultimo_sexto_grati: float # 1/6 de la última grati percibida
+    dias_falta_en_semestre_trunco: int = 0
 ) -> Dict[str, Any]:
     """
-    Genera el cálculo completo de una Liquidación de Beneficios Sociales (LQBS).
-    """
+    Genera el cálculo completo de una Liquidación de Beneficios Sociales (LQBS).    """
     
     lqbs = {
         'fecha_ingreso': fecha_ingreso,
