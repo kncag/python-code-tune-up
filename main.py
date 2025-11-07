@@ -829,7 +829,7 @@ def _calcular_truncos_vacaciones(
     return vacas_truncas, meses_truncos, dias_truncos
 
 def _calcular_indemnizacion_despido(rc_indemnizacion: float, fecha_ingreso: datetime.date, fecha_cese: datetime.date) -> Tuple[float, int, int, int]:
-// ... existing code ...
+
     indemnizacion_dias = (remuneracion_por_anio / 12 / 30) * dias
     
     total_indemnizacion = indemnizacion_anios + indemnizacion_meses + indemnizacion_dias
