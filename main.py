@@ -23,7 +23,7 @@ from dateutil.relativedelta import relativedelta
 # --- IMPORTAR TODO EL MOTOR DE CÁLCULO ---
 # Importa todas las funciones y constantes (ej. UIT_2025, RMV_2025)
 # desde el archivo 'logica_calculo.py'
-from logica_calculo import *
+from logica_calculo import
 
 # ==============================================================================
 # --- SECCIÓN DE HELPERS DE UI ---
