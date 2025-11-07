@@ -236,6 +236,31 @@ tab_boleta, tab_lqbs, tab_ria, tab_indemnizacion = st.tabs([
 with tab_boleta:
     st.header("Calculadora de Boleta Mensual (Régimen 728)")
     
+    # --- MEJORA: Mover el data_editor FUERA del formulario ---
+    # Usamos st.session_state para guardar sus datos
+    
+    with st.expander("Historial Semestral (Para Regularidad de Gratificación)"):
+        st.warning("Importante: Estos datos solo se usan en Julio (Mes 7) y Diciembre (Mes 12) para el Principio de Regularidad (3 de 6).")
+        st.write("Ingrese los montos de los 6 meses del semestre (Ene-Jun o Jul-Dic):")
+
+        # 1. Crear un DataFrame de ejemplo
+        data_historial_boleta = {
+            'Horas Extras (S/)': [0.0] * 6,
+            'Bono Nocturno (S/)': [0.0] * 6,
+            'Otros Afectos (S/)': [0.0] * 6,
+            'Días Falta': [0] * 6
+        }
+        meses_semestre_boleta = [f"Mes {i+1}" for i in range(6)]
+        df_historial_boleta = pd.DataFrame(data_historial_boleta, index=meses_semestre_boleta)
+
+        # 2. Usar st.data_editor y guardar su estado en su propia clave
+        st.data_editor(
+            df_historial_boleta, 
+            num_rows_dynamic=False,
+            key="historial_boleta_editor" # Clave única para esta tabla
+        )
+    # --- FIN DE LA MEJORA ---
+    
     with st.form("boleta_form"):
         # --- Columnas de Inputs ---
         col1, col2, col3 = st.columns(3)
@@ -293,10 +318,7 @@ with tab_boleta:
             in_gastos_essalud_hogar = st.number_input("Gastos en EsSalud Trabajador del Hogar (100%)", min_value=0.0, value=0.0, step=100.0, key="boleta_hogar") # <- CLAVE AÑADIDA
 
         # --- MEJORA DE UX: Usar st.data_editor para el Historial Semestral ---
-        with st.expander("Historial Semestral (Para Regularidad de Gratificación)"):
-            st.warning("Importante: Estos datos solo se usan en Julio (Mes 7) y Diciembre (Mes 12) para el Principio de Regularidad (3 de 6).")
-            # Llamada a la función reutilizable
-            historial_semestral_completo = crear_editor_historial_semestral(key_prefix="boleta")
+        # (El expander fue movido AFUERA del formulario)
         # --- FIN DE LA MEJORA ---
 
         with st.expander("Acumuladores Anuales (Para Renta 5ta)"):
@@ -311,6 +333,17 @@ with tab_boleta:
     # --- Área de Resultados (Boleta) ---
     if submitted_boleta:
         with st.spinner("Calculando boleta..."):
+            
+            # --- MEJORA: Recolectar datos del editor desde st.session_state ---
+            historial_editado_boleta = st.session_state.historial_boleta_editor
+            historial_semestral_completo = {
+                'ing_sobretiempo_total': historial_editado_boleta['Horas Extras (S/)'].tolist(),
+                'ing_bonificacion_nocturna': historial_editado_boleta['Bono Nocturno (S/)'].tolist(),
+                'otros_ingresos_afectos': historial_editado_boleta['Otros Afectos (S/)'].tolist(),
+                'dias_falta': historial_editado_boleta['Días Falta'].tolist()
+            }
+            # --- FIN DE LA MEJORA ---
+            
             boleta_calculada = generar_boleta_mensual(
                 sueldo_basico_nominal=in_sueldo_basico,
                 tiene_hijos=in_tiene_hijos,
@@ -372,6 +405,28 @@ with tab_boleta:
 # --- PESTAÑA 2: LIQUIDACIÓN (LQBS) ---
 with tab_lqbs:
     st.header("Calculadora de Liquidación (LQBS)")
+
+    # --- MEJORA: Mover el data_editor FUERA del formulario ---
+    with st.expander("Historial de Variables (Últimos 6 Meses para Regularidad)"):
+        st.write("Ingrese los montos de los 6 meses *anteriores* al cese (para Principio de Regularidad 3 de 6).")
+        
+        # 1. Crear un DataFrame de ejemplo
+        data_historial_lqbs = {
+            'Horas Extras (S/)': [0.0] * 6,
+            'Bono Nocturno (S/)': [0.0] * 6,
+            'Otros Afectos (S/)': [0.0] * 6,
+            'Días Falta': [0] * 6 # Aunque no se usa aquí, mantenemos la estructura
+        }
+        meses_semestre_lqbs = [f"Mes {i+1}" for i in range(6)]
+        df_historial_lqbs = pd.DataFrame(data_historial_lqbs, index=meses_semestre_lqbs)
+
+        # 2. Usar st.data_editor y guardar su estado
+        st.data_editor(
+            df_historial_lqbs, 
+            num_rows_dynamic=False,
+            key="historial_lqbs_editor" # Clave única
+        )
+    # --- FIN DE LA MEJORA ---
     
     with st.form("lqbs_form"):
         
@@ -398,10 +453,7 @@ with tab_lqbs:
         in_lqbs_faltas_sem_trunco = col3.number_input("Faltas en Semestre Trunco", min_value=0, value=5, step=1, help="Días de falta para descuento en Grati Trunca (1/180vo).")
 
         # --- MEJORA DE UX: Usar st.data_editor para el Historial Semestral ---
-        with st.expander("Historial de Variables (Últimos 6 Meses para Regularidad)"):
-            st.write("Ingrese los montos de los 6 meses *anteriores* al cese (para Principio de Regularidad 3 de 6).")
-            # Llamada a la función reutilizable
-            historial_lqbs_completo = crear_editor_historial_semestral(key_prefix="lqbs")
+        # (El expander fue movido AFUERA del formulario)
         # --- FIN DE LA MEJORA ---
 
         # --- Botón de Envío ---
@@ -410,6 +462,17 @@ with tab_lqbs:
     # --- Área de Resultados (LQBS) ---
     if submitted_lqbs:
         with st.spinner("Calculando liquidación..."):
+            
+            # --- MEJORA: Recolectar datos del editor desde st.session_state ---
+            historial_editado_lqbs = st.session_state.historial_lqbs_editor
+            historial_lqbs_completo = {
+                'ing_sobretiempo_total': historial_editado_lqbs['Horas Extras (S/)'].tolist(),
+                'ing_bonificacion_nocturna': historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
+                'otros_ingresos_afectos': historial_editado_lqbs['Otros Afectos (S/)'].tolist(),
+                # 'dias_falta' no se usa en la lógica de LQBS, pero lo podríamos incluir
+            }
+            # --- FIN DE LA MEJORA ---
+            
             lqbs_calculada = generar_liquidacion(
                 fecha_ingreso=in_lqbs_fecha_ingreso,
                 fecha_cese=in_lqbs_fecha_cese,
