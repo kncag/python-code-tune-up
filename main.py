@@ -334,7 +334,12 @@ with tab_boleta:
         with st.spinner("Calculando boleta..."):
             
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
-            historial_editado_boleta = st.session_state.historial_boleta_editor
+            historial_editado_boleta_dict = st.session_state.historial_boleta_editor
+            
+            # --- CORRECCIÓN: Convertir el dict de vuelta a un DataFrame ---
+            # El state se guarda como un dict { 'Mes 1': {...}, 'Mes 2': {...} }
+            historial_editado_boleta = pd.DataFrame.from_dict(historial_editado_boleta_dict, orient='index')
+            
             historial_semestral_completo = {
                 'ing_sobretiempo_total': historial_editado_boleta['Horas Extras (S/)'].tolist(),
                 'ing_bonificacion_nocturna': historial_editado_boleta['Bono Nocturno (S/)'].tolist(),
@@ -462,7 +467,11 @@ with tab_lqbs:
         with st.spinner("Calculando liquidación..."):
             
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
-            historial_editado_lqbs = st.session_state.historial_lqbs_editor
+            historial_editado_lqbs_dict = st.session_state.historial_lqbs_editor
+
+            # --- CORRECCIÓN: Convertir el dict de vuelta a un DataFrame ---
+            historial_editado_lqbs = pd.DataFrame.from_dict(historial_editado_lqbs_dict, orient='index')
+
             historial_lqbs_completo = {
                 'ing_sobretiempo_total': historial_editado_lqbs['Horas Extras (S/)'].tolist(),
                 'ing_bonificacion_nocturna': historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
