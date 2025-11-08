@@ -9,9 +9,11 @@ Versión de archivo único (Opción B) con todos los bugs corregidos:
 - (REVISADO) 'num_rows_dynamic' eliminado para compatibilidad.
 - (REVISADO) Inputs de SCTR/SENATI movidos dentro del form.
 - (REVISADO) Constante SISTEMAS_PENSION añadida.
-- (NUEVO) Inputs reorganizados en columnas para mayor compacidad.
-- (NUEVO) Se añadieron 'help' con bases legales a todos los inputs.
-- (NUEVO) Se ocultaron los botones +/- de los st.number_input vía CSS.
+- (REVISADO) Inputs reorganizados en columnas para mayor compacidad.
+- (REVISADO) Se añadieron 'help' con bases legales a todos los inputs.
+- (REVISADO) Se ocultaron los botones +/- de los st.number_input vía CSS.
+- (NUEVO) Corregido el bug de layout en la pestaña LQBS (col3_lq).
+- (NUEVO) Mejorado el CSS para ocultar botones +/- de forma más efectiva.
 """
 
 # --- 0. IMPORTACIONES NECESARIAS ---
@@ -903,10 +905,18 @@ st.set_page_config(
     page_icon="🇵🇪"
 )
 
-# (NUEVO) Oculta los botones +/- en los st.number_input para un look más limpio
+# (NUEVO) CSS mejorado para ocultar los botones +/- en los st.number_input
 st.markdown("""
     <style>
-    div[data-testid="stNumberInput"] button[data-testid*="button-"] {
+    /* Oculta los botones de subida/bajada dentro de stNumberInput */
+    div[data-testid="stNumberInput-StepDown"] {
+        display: none;
+    }
+    div[data-testid="stNumberInput-StepUp"] {
+        display: none;
+    }
+    /* Fallback por si acaso */
+    div[data-testid="stNumberInput"] button {
         display: none;
     }
     </style>
@@ -1114,9 +1124,10 @@ with tab_lqbs:
         with col3_lq:
             st.subheader("Regímenes y Faltas")
             st.caption("Opciones que modifican el cálculo.")
-            in_lqbs_part_time = col1.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Marcar si el contrato es a tiempo parcial (menos de 4 horas diarias). Pierde derecho a CTS y Vacaciones. Base Legal: D.S. 001-97-TR y D.L. 713.", key="lqbs_part_time")
-            in_lqbs_pierde_record = col2.checkbox("¿Perdió Récord Vacacional?", value=False, help="Marcar si el trabajador no cumplió el récord vacacional (ej. +10 faltas). Pierde derecho a Vacaciones Truncas. Base Legal: Art. 10, D.L. 713.", key="lqbs_pierde_record")
-            in_lqbs_faltas_sem_trunco = col3.number_input("Faltas en Semestre Trunco", min_value=0, value=0, step=1, help="Total de días de falta en el semestre trunco (Ene-Cese o Jul-Cese). Se usa para descontar de la Grati Trunca (1/180vo). Base Legal: D.S. N° 005-2002-TR.")
+            # (CORRECCIÓN) Widgets asignados a 'col3_lq'
+            in_lqbs_part_time = col3_lq.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Marcar si el contrato es a tiempo parcial (menos de 4 horas diarias). Pierde derecho a CTS y Vacaciones. Base Legal: D.S. 001-97-TR y D.L. 713.", key="lqbs_part_time")
+            in_lqbs_pierde_record = col3_lq.checkbox("¿Perdió Récord Vacacional?", value=False, help="Marcar si el trabajador no cumplió el récord vacacional (ej. +10 faltas). Pierde derecho a Vacaciones Truncas. Base Legal: Art. 10, D.L. 713.", key="lqbs_pierde_record")
+            in_lqbs_faltas_sem_trunco = col3_lq.number_input("Faltas en Semestre Trunco", min_value=0, value=0, step=1, help="Total de días de falta en el semestre trunco (Ene-Cese o Jul-Cese). Se usa para descontar de la Grati Trunca (1/180vo). Base Legal: D.S. N° 005-2002-TR.")
 
         submitted_lqbs = st.form_submit_button("Calcular Liquidación (LQBS)", type="primary")
 
