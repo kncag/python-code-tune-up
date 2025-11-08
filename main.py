@@ -12,8 +12,9 @@ Versión de archivo único (Opción B) con todos los bugs corregidos:
 - (REVISADO) Inputs reorganizados en columnas para mayor compacidad.
 - (REVISADO) Se añadieron 'help' con bases legales a todos los inputs.
 - (REVISADO) Se ocultaron los botones +/- de los st.number_input vía CSS.
-- (NUEVO) Corregido el bug de layout en la pestaña LQBS (col3_lq).
-- (NUEVO) Mejorado el CSS para ocultar botones +/- de forma más efectiva.
+- (REVISADO) Corregido el bug de layout en la pestaña LQBS (col3_lq).
+- (REVISADO) Mejorado el CSS para ocultar botones +/- de forma más efectiva.
+- (NUEVO) Los expanders de resultados de la boleta ahora usan columnas.
 """
 
 # --- 0. IMPORTACIONES NECESARIAS ---
@@ -788,37 +789,50 @@ def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
     col1.metric("Neto vs. Sueldo Nominal", f"{boleta['ratio_neto_vs_sueldo_nominal']:.2%}", help="Cuánto recibe el trabajador por cada S/ 1.00 de sueldo básico.")
     col2.metric("Neto vs. Bruto Total", f"{boleta['ratio_neto_vs_bruto']:.2%}", help="Qué porcentaje del ingreso bruto total se convierte en dinero 'en el bolsillo'.")
 
+    # (NUEVO) Desglose de ingresos en columnas
     with st.expander("Ver Desglose de Ingresos"):
-        st.markdown(f"**Sueldo Básico Nominal:** `S/ {boleta['sueldo_basico_nominal']:,.2f}`")
-        if boleta['dias_falta'] > 0:
-            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;Descuento Faltas ({boleta['dias_falta']} días): `S/ {boleta['desc_faltas']:,.2f}`")
-            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;**Sueldo Básico (Ajustado):** `S/ {boleta['ing_basico_ajustado']:,.2f}`")
-        st.markdown(f"**Asignación Familiar:** `S/ {boleta['ing_asig_familiar']:,.2f}`")
-        st.markdown(f"**Bonificación Nocturna:** `S/ {boleta['ing_bonificacion_nocturna']:,.2f}`")
-        st.markdown(f"**Sobretiempo (Total):** `S/ {boleta['ing_sobretiempo_total']:,.2f}`")
-        st.markdown(f"**Otros Afectos (Bonos):** `S/ {boleta['otros_ingresos_afectos']:,.2f}`")
-        st.markdown(f"**No Remunerativos (Movilidad):** `S/ {boleta['ingresos_no_remunerativos']:,.2f}`")
-        st.markdown(f"**Prestación Alimentaria:** `S/ {boleta['ingreso_lpa']:,.2f}`")
-        st.markdown(f"**Utilidades:** `S/ {boleta['ingreso_utilidades']:,.2f}`")
-        st.markdown(f"**Subsidio (DM):** `S/ {boleta['ingreso_subsidio']:,.2f}`")
+        col1_ing, col2_ing = st.columns(2)
+        with col1_ing:
+            st.markdown(f"**Sueldo Básico Nominal:** `S/ {boleta['sueldo_basico_nominal']:,.2f}`")
+            if boleta['dias_falta'] > 0:
+                st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;Descuento Faltas ({boleta['dias_falta']} días): `S/ {boleta['desc_faltas']:,.2f}`")
+                st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;**Sueldo Básico (Ajustado):** `S/ {boleta['ing_basico_ajustado']:,.2f}`")
+            st.markdown(f"**Asignación Familiar:** `S/ {boleta['ing_asig_familiar']:,.2f}`")
+            st.markdown(f"**Bonificación Nocturna:** `S/ {boleta['ing_bonificacion_nocturna']:,.2f}`")
+            st.markdown(f"**Sobretiempo (Total):** `S/ {boleta['ing_sobretiempo_total']:,.2f}`")
+        
+        with col2_ing:
+            st.markdown(f"**Otros Afectos (Bonos):** `S/ {boleta['otros_ingresos_afectos']:,.2f}`")
+            st.markdown(f"**No Remunerativos (Movilidad):** `S/ {boleta['ingresos_no_remunerativos']:,.2f}`")
+            st.markdown(f"**Prestación Alimentaria:** `S/ {boleta['ingreso_lpa']:,.2f}`")
+            st.markdown(f"**Utilidades:** `S/ {boleta['ingreso_utilidades']:,.2f}`")
+            st.markdown(f"**Subsidio (DM):** `S/ {boleta['ingreso_subsidio']:,.2f}`")
+        
+        # Gratificación se mantiene a lo ancho por su importancia
         if boleta['ing_gratificacion'] > 0:
+            st.divider()
             st.success(f"**Gratificación:** `S/ {boleta['ing_gratificacion']:,.2f}`")
             st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Base Grati: S/ {boleta['rem_computable_grati']:.2f})")
             if boleta['dias_falta_semestre_grati'] > 0:
                 st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Desc. Faltas {boleta['dias_falta_semestre_grati']} días * 1/180vo)")
             st.success(f"**Bonificación Ley:** `S/ {boleta['ing_boni_ley']:,.2f}`")
             
+    # (NUEVO) Desglose de descuentos en columnas
     with st.expander("Ver Desglose de Descuentos"):
-        st.markdown(f"**Pensión ({boleta['sistema_pension']}):** `S/ {boleta['desc_pension']:,.2f}`")
-        st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Base Afecta: S/ {boleta['base_pension_salud_mes']:.2f})")
-        if boleta['sistema_pension'] != 'ONP':
-            st.caption(f"&nbsp;&nbsp;&nbsp;&nbsp;Prima AFP aplicada hasta TMA S/ {TOPE_MAXIMO_ASEGURABLE_AFP_2025:,.2f}")
-        st.markdown(f"**Renta 5ta Cat. (Mes):** `S/ {boleta['desc_renta_quinta']:,.2f}`")
-        st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Proy. Anual R5 Afecta): `S/ {boleta['proyeccion_anual_r5']:,.2f}`")
-        if boleta['tiene_eps']:
-            st.caption(f"&nbsp;&;&nbsp;&nbsp;(Proy. Base Salud: S/ {boleta['proyeccion_base_salud_anual']:.2f})")
-        st.markdown(f"**Desc. Prest. Aliment.:** `S/ {boleta['desc_lpa']:,.2f}`")
-        st.markdown(f"**Otros Descuentos (Fijos):** `S/ {boleta['otros_descuentos_fijos']:,.2f}`")
+        col1_desc, col2_desc = st.columns(2)
+        with col1_desc:
+            st.markdown(f"**Pensión ({boleta['sistema_pension']}):** `S/ {boleta['desc_pension']:,.2f}`")
+            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Base Afecta: S/ {boleta['base_pension_salud_mes']:.2f})")
+            if boleta['sistema_pension'] != 'ONP':
+                st.caption(f"&nbsp;&nbsp;&nbsp;&nbsp;Prima AFP aplicada hasta TMA S/ {TOPE_MAXIMO_ASEGURABLE_AFP_2025:,.2f}")
+        
+        with col2_desc:
+            st.markdown(f"**Renta 5ta Cat. (Mes):** `S/ {boleta['desc_renta_quinta']:,.2f}`")
+            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Proy. Anual R5 Afecta): `S/ {boleta['proyeccion_anual_r5']:,.2f}`")
+            if boleta['tiene_eps']:
+                st.caption(f"&nbsp;&;&nbsp;&nbsp;(Proy. Base Salud: S/ {boleta['proyeccion_base_salud_anual']:.2f})")
+            st.markdown(f"**Desc. Prest. Aliment.:** `S/ {boleta['desc_lpa']:,.2f}`")
+            st.markdown(f"**Otros Descuentos (Fijos):** `S/ {boleta['otros_descuentos_fijos']:,.2f}`")
 
     with st.expander("Ver Diccionario de Resultados (JSON)"):
         st.json(boleta)
@@ -909,15 +923,18 @@ st.set_page_config(
 st.markdown("""
     <style>
     /* Oculta los botones de subida/bajada dentro de stNumberInput */
-    div[data-testid="stNumberInput-StepDown"] {
+    div[data-testid="stNumberInput"] button[data-testid*="Step"] {
         display: none;
     }
-    div[data-testid="stNumberInput-StepUp"] {
-        display: none;
+    /* Oculta los botones +/- en navegadores WebKit (Chrome, Safari) */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
     }
-    /* Fallback por si acaso */
-    div[data-testid="stNumberInput"] button {
-        display: none;
+    /* Oculta los botones +/- en Firefox */
+    input[type=number] {
+        -moz-appearance: textfield;
     }
     </style>
     """, unsafe_allow_html=True)
