@@ -254,9 +254,10 @@ with tab_boleta:
         df_historial_boleta = pd.DataFrame(data_historial_boleta, index=meses_semestre_boleta)
 
         # 2. Usar st.data_editor y guardar su estado en su propia clave
-        st.data_editor(
+        # --- CORRECCIÓN (v4): Capturar el *retorno* de data_editor ---
+        # El valor editado es devuelto por la función, no leído desde session_state.
+        historial_editado_boleta = st.data_editor(
             df_historial_boleta, 
-            # num_rows_dynamic=False, # <- ELIMINADO
             key="historial_boleta_editor" # Clave única para esta tabla
         )
     # --- FIN DE LA MEJORA ---
@@ -334,19 +335,18 @@ with tab_boleta:
     if submitted_boleta:
         with st.spinner("Calculando boleta..."):
             
-            # --- MEJORA: Recolectar datos del editor desde st.session_state ---
-            historial_editado_boleta_dict = st.session_state.historial_boleta_editor
+            # --- CORRECCIÓN (v4): Usar el DataFrame capturado directamente ---
+            # No es necesario leer de st.session_state ni reconstruir el DataFrame.
+            # Las siguientes 7 líneas están comentadas/eliminadas:
+            # historial_editado_boleta_dict = st.session_state.historial_boleta_editor
+            # columnas_historial = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
+            # historial_editado_boleta = pd.DataFrame.from_dict(
+            #     historial_editado_boleta_dict, 
+            #     orient='index',
+            #     columns=columnas_historial
+            # )
             
-            # --- CORRECCIÓN (v3): Convertir el dict de vuelta a un DataFrame ---
-            # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
-            # Debemos proveer las columnas para que Pandas lo rearme.
-            columnas_historial = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
-            historial_editado_boleta = pd.DataFrame.from_dict(
-                historial_editado_boleta_dict, 
-                orient='index',
-                columns=columnas_historial
-            )
-            
+            # El DataFrame 'historial_editado_boleta' ya está disponible desde la línea 271
             historial_semestral_completo = {
                 'ing_sobretiempo_total': historial_editado_boleta['Horas Extras (S/)'].tolist(),
                 'ing_bonificacion_nocturna': historial_editado_boleta['Bono Nocturno (S/)'].tolist(),
@@ -432,9 +432,9 @@ with tab_lqbs:
         df_historial_lqbs = pd.DataFrame(data_historial_lqbs, index=meses_semestre_lqbs)
 
         # 2. Usar st.data_editor y guardar su estado
-        st.data_editor(
+        # --- CORRECCIÓN (v4): Capturar el *retorno* de data_editor ---
+        historial_editado_lqbs = st.data_editor(
             df_historial_lqbs, 
-            # num_rows_dynamic=False, # <- ELIMINADO
             key="historial_lqbs_editor" # Clave única
         )
     # --- FIN DE LA MEJORA ---
@@ -474,18 +474,18 @@ with tab_lqbs:
     if submitted_lqbs:
         with st.spinner("Calculando liquidación..."):
             
-            # --- MEJORA: Recolectar datos del editor desde st.session_state ---
-            historial_editado_lqbs_dict = st.session_state.historial_lqbs_editor
+            # --- CORRECCIÓN (v4): Usar el DataFrame capturado directamente ---
+            # No es necesario leer de st.session_state ni reconstruir el DataFrame.
+            # Las siguientes 7 líneas están comentadas/eliminadas:
+            # historial_editado_lqbs_dict = st.session_state.historial_lqbs_editor
+            # columnas_historial_lqbs = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
+            # historial_editado_lqbs = pd.DataFrame.from_dict(
+            #     historial_editado_lqbs_dict, 
+            #     orient='index',
+            #     columns=columnas_historial_lqbs
+            # )
 
-            # --- CORRECCIÓN (v3): Convertir el dict de vuelta a un DataFrame ---
-            # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
-            columnas_historial_lqbs = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
-            historial_editado_lqbs = pd.DataFrame.from_dict(
-                historial_editado_lqbs_dict, 
-                orient='index',
-                columns=columnas_historial_lqbs
-            )
-
+            # El DataFrame 'historial_editado_lqbs' ya está disponible desde la línea 470
             historial_lqbs_completo = {
                 'ing_sobretiempo_total': historial_editado_lqbs['Horas Extras (S/)'].tolist(),
                 'ing_bonificacion_nocturna': historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
