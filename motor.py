@@ -3,12 +3,15 @@
 CALCULADORA DE PLANILLA Y BB.SS. PERÚ 2025 (App Streamlit)
 
 Versión de archivo único (Opción B) con todos los bugs corregidos:
-- Corregida la lógica de _calcular_indemnizacion_despido.
-- Corregidos los 'key' duplicados (StreamlitDuplicateElementId).
-- Corregido el bug de 'st.data_editor' (movido fuera del form).
-- Eliminado 'num_rows_dynamic' para compatibilidad.
-- Corregido el bug de UX de los inputs de SCTR/SENATI.
-- Añadida la constante SISTEMAS_PENSION.
+- (REVISADO) Lógica de _calcular_indemnizacion_despido corregida.
+- (REVISADO) 'key' duplicados corregidos (StreamlitDuplicateElementId).
+- (REVISADO) Bug de 'st.data_editor' corregido (movido fuera del form).
+- (REVISADO) 'num_rows_dynamic' eliminado para compatibilidad.
+- (REVISADO) Inputs de SCTR/SENATI movidos dentro del form.
+- (REVISADO) Constante SISTEMAS_PENSION añadida.
+- (NUEVO) Inputs reorganizados en columnas para mayor compacidad.
+- (NUEVO) Se añadieron 'help' con bases legales a todos los inputs.
+- (NUEVO) Se ocultaron los botones +/- de los st.number_input vía CSS.
 """
 
 # --- 0. IMPORTACIONES NECESARIAS ---
@@ -31,7 +34,6 @@ PORC_ASIG_FAMILIAR = 0.10
 PORC_ESSALUD = 0.09
 PORC_ONP = 0.13
 
-# (CORRECCIÓN) Añadida la constante que faltaba
 SISTEMAS_PENSION = ['ONP', 'INTEGRA', 'PRIMA', 'HABITAT', 'PROFUTURO']
 
 TRAMOS_IR = [
@@ -721,31 +723,47 @@ MESES_LISTA = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 
 def _renderizar_gastos_deducibles(key_prefix: str) -> EntradasGastosDeducibles:
     """
-    Helper reutilizable para mostrar el expander de Gastos Deducibles
-    y devolver el dataclass poblado.
+    (NUEVO) Helper reutilizable para mostrar el expander de Gastos Deducibles
+    en un layout de columnas.
     """
-    with st.expander("Gastos Deducibles (3 UIT Anuales)"):
+    with st.expander("Gastos Deducibles (3 UIT Anuales) - Art. 46, LIR"):
         st.caption("Ingrese el total gastado en el año. El sistema calculará el % deducible.")
-        in_gastos_restaurantes = st.number_input(
-            "Gastos en Restaurantes y Hoteles (15%)", 
-            min_value=0.0, value=6000.0, step=100.0, key=f"{key_prefix}_rest"
-        )
-        in_gastos_alquiler = st.number_input(
-            "Gastos en Arrendamiento (30%)", 
-            min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_alq"
-        )
-        in_gastos_medicos = st.number_input(
-            "Gastos en Honorarios Médicos/Odont. (30%)", 
-            min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_med"
-        )
-        in_gastos_profesionales = st.number_input(
-            "Gastos en Servicios Profesionales (30%)", 
-            min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_prof"
-        )
-        in_gastos_essalud_hogar = st.number_input(
-            "Gastos en EsSalud Trabajador del Hogar (100%)", 
-            min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_hogar"
-        )
+        
+        # (NUEVO) Layout en columnas
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            in_gastos_restaurantes = st.number_input(
+                "Restaurantes y Hoteles (15%)", 
+                min_value=0.0, value=6000.0, step=100.0, key=f"{key_prefix}_rest",
+                help="Base Legal: D.S. 399-2016-EF. Se deduce el 15% del gasto total."
+            )
+        with col2:
+            in_gastos_alquiler = st.number_input(
+                "Arrendamiento (30%)", 
+                min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_alq",
+                help="Base Legal: Art. 46, LIR. Se deduce el 30% del gasto total por alquiler de vivienda."
+            )
+        with col3:
+            in_gastos_medicos = st.number_input(
+                "Honorarios Médicos (30%)", 
+                min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_med",
+                help="Base Legal: Art. 46, LIR. Se deduce el 30% de honorarios a médicos y odontólogos."
+            )
+
+        # (NUEVO) Segunda fila de columnas
+        col4, col5 = st.columns([2, 1])
+        with col4:
+            in_gastos_profesionales = st.number_input(
+                "Servicios Profesionales (30%)", 
+                min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_prof",
+                help="Base Legal: Art. 46, LIR. Se deduce el 30% de servicios profesionales (4ta Cat) excepto médicos/odont."
+            )
+        with col5:
+            in_gastos_essalud_hogar = st.number_input(
+                "EsSalud Hogar (100%)", 
+                min_value=0.0, value=0.0, step=100.0, key=f"{key_prefix}_hogar",
+                help="Base Legal: Art. 46, LIR. Se deduce el 100% del aporte a EsSalud por trabajador del hogar."
+            )
         
         return EntradasGastosDeducibles(
             arrendamiento=in_gastos_alquiler,
@@ -885,8 +903,17 @@ st.set_page_config(
     page_icon="🇵🇪"
 )
 
+# (NUEVO) Oculta los botones +/- en los st.number_input para un look más limpio
+st.markdown("""
+    <style>
+    div[data-testid="stNumberInput"] button[data-testid*="button-"] {
+        display: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("Calculadora de Planilla y BB.SS. Perú 2025")
-st.info("Herramienta de cálculo basada en la legislación peruana. (Versión de Archivo Único Corregido)")
+st.info("Herramienta de cálculo referencial basada en la legislación peruana vigente a 2025.")
 
 tab_boleta, tab_lqbs, tab_ria, tab_indemnizacion = st.tabs([
     "Calculadora de Boleta Mensual (Régimen 728)", 
@@ -900,10 +927,8 @@ tab_boleta, tab_lqbs, tab_ria, tab_indemnizacion = st.tabs([
 with tab_boleta:
     st.header("Calculadora de Boleta Mensual (Régimen 728)")
     
-    # (CORRECCIÓN v4) Mover el data_editor FUERA del formulario
-    # y capturar su valor de retorno.
     with st.expander("Historial Semestral (Para Regularidad de Gratificación)"):
-        st.warning("Importante: Estos datos solo se usan en Julio (Mes 7) y Diciembre (Mes 12) para el Principio de Regularidad (3 de 6).")
+        st.warning("Importante: Estos datos solo se usan en Julio (Mes 7) y Diciembre (Mes 12) para el Principio de Regularidad (Art. 19, D.S. 001-97-TR).")
         st.write("Ingrese los montos de los 6 meses del semestre (Ene-Jun o Jul-Dic):")
 
         data_historial_boleta = {
@@ -918,7 +943,6 @@ with tab_boleta:
         historial_editado_boleta = st.data_editor(
             df_historial_boleta, 
             key="historial_boleta_editor"
-            # (CORRECCIÓN) 'num_rows_dynamic' eliminado para compatibilidad
         )
     
     with st.form("boleta_form"):
@@ -926,50 +950,57 @@ with tab_boleta:
         
         with col1:
             st.subheader("Datos del Empleado")
-            in_sueldo_basico = st.number_input("Sueldo Básico Nominal", min_value=0.0, value=5300.0, step=100.0)
-            in_tiene_hijos = st.checkbox("¿Tiene Hijos? (Asig. Familiar)", value=False)
+            in_sueldo_basico = st.number_input("Sueldo Básico Nominal", min_value=0.0, value=5300.0, step=100.0, help="Remuneración básica mensual, sin incluir bonos ni descuentos.")
+            in_tiene_hijos = st.checkbox("¿Tiene Hijos? (Asig. Familiar)", value=False, help="Marcar si el trabajador tiene hijos menores de 18 años (o 24 estudiando). Base Legal: Ley N° 25129.")
             in_sistema_pension = st.selectbox("Sistema de Pensión", 
                                               SISTEMAS_PENSION,
                                               index=1,
-                                              key="boleta_pension") # (CORRECCIÓN) Key única
-            in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True, key="boleta_eps") # (CORRECCIÓN) Key única
+                                              key="boleta_pension",
+                                              help="Seleccione el sistema de pensiones: ONP (Público) o una AFP (Privado). Base Legal: D.L. N° 19990 (ONP), D.L. N° 25897 (SPP).")
+            in_tiene_eps = st.checkbox("¿Tiene EPS?", value=True, key="boleta_eps", help="Marcar si el trabajador está afiliado a una Entidad Prestadora de Salud (EPS). Esto genera un crédito en Renta 5ta. Base Legal: Ley N° 26790.")
 
         with col2:
             st.subheader("Datos del Mes")
-            in_mes_nombre = st.selectbox("Mes de Cálculo", options=MESES_LISTA, index=0, key="boleta_mes_nombre")
+            in_mes_nombre = st.selectbox("Mes de Cálculo", options=MESES_LISTA, index=0, key="boleta_mes_nombre", help="Seleccione el mes para el cual desea calcular la boleta.")
             in_mes_actual = MESES_LISTA.index(in_mes_nombre) + 1
-            in_dias_falta = st.number_input("Días de Falta Injustificada", min_value=0, max_value=30, value=0, step=1)
-            in_horas_nocturnas = st.number_input("Total Horas Nocturnas en el Mes", min_value=0.0, value=0.0, step=1.0)
-            in_he_25 = st.number_input("Total Horas Extras al 25%", min_value=0.0, value=0.0, step=0.5)
-            in_he_35 = st.number_input("Total Horas Extras al 35%", min_value=0.0, value=0.0, step=0.5)
-            in_he_100 = st.number_input("Total Horas Extras al 100% (Feriados)", min_value=0.0, value=0.0, step=0.5)
+            in_dias_falta = st.number_input("Días de Falta Injustificada", min_value=0, max_value=30, value=0, step=1, help="Número de días de inasistencia injustificada en el mes. Se descuenta 1/30 del sueldo por día. Base Legal: D.L. 713.")
+            in_horas_nocturnas = st.number_input("Total Horas Nocturnas en el Mes", min_value=0.0, value=0.0, step=1.0, help="Total de horas laboradas en jornada nocturna (10pm a 6am). Genera una sobretasa del 35%. Base Legal: Art. 8, D.S. N° 007-2002-TR.")
+            in_he_25 = st.number_input("Total Horas Extras al 25%", min_value=0.0, value=0.0, step=0.5, help="Total de horas extra que corresponden a las dos primeras horas extra del día. Base Legal: Art. 9, D.S. N° 007-2002-TR.")
+            in_he_35 = st.number_input("Total Horas Extras al 35%", min_value=0.0, value=0.0, step=0.5, help="Total de horas extra laboradas a partir de la tercera hora extra del día. Base Legal: Art. 9, D.S. N° 007-2002-TR.")
+            in_he_100 = st.number_input("Total Horas Extras al 100% (Feriados)", min_value=0.0, value=0.0, step=0.5, help="Total de horas extra laboradas en días feriados o día de descanso semanal obligatorio. Base Legal: D.L. 713.")
 
         with col3:
             st.subheader("Otros Ingresos / Descuentos")
-            in_otros_ingresos_afectos = st.number_input("Otros Bonos Afectos", min_value=0.0, value=0.0, step=50.0)
-            in_movilidad = st.number_input("Ingreso No Remunerativo (Movilidad)", min_value=0.0, value=500.0, step=50.0)
-            in_lpa = st.number_input("Prestación Alimentaria (LPA)", min_value=0.0, value=0.0, step=50.0)
-            in_utilidades = st.number_input("Ingreso por Utilidades (Pago único)", min_value=0.0, value=0.0, step=100.0)
-            in_subsidio = st.number_input("Ingreso por Subsidio (DM)", min_value=0.0, value=0.0, step=100.0)
-            in_otros_descuentos = st.number_input("Otros Descuentos Fijos (Sindicato, etc.)", min_value=0.0, value=0.0, step=10.0)
+            in_otros_ingresos_afectos = st.number_input("Otros Bonos Afectos", min_value=0.0, value=0.0, step=50.0, help="Monto total de otros ingresos remunerativos (ej. Bono de productividad, comisiones) que sean afectos a Pensión, Salud y Renta 5ta.")
+            in_movilidad = st.number_input("Ingreso No Remunerativo (Movilidad)", min_value=0.0, value=500.0, step=50.0, help="Monto por movilidad supeditada a la asistencia. No es base para Pensión/Salud, pero SÍ para Renta 5ta. Base Legal: Art. 34, LIR.")
+            in_lpa = st.number_input("Prestación Alimentaria (LPA)", min_value=0.0, value=0.0, step=50.0, help="Ingreso por prestación alimentaria (ej. Tarjeta de alimentos). No es base para Pensión/Salud, pero SÍ para Renta 5ta. Base Legal: Ley N° 28051.")
+            in_utilidades = st.number_input("Ingreso por Utilidades (Pago único)", min_value=0.0, value=0.0, step=100.0, help="Monto de utilidades pagado en el mes. No es base para Pensión/Salud, pero SÍ para Renta 5ta. Base Legal: D.L. N° 892.")
+            in_subsidio = st.number_input("Ingreso por Subsidio (DM)", min_value=0.0, value=0.0, step=100.0, help="Monto de subsidio por Incapacidad Temporal (Descanso Médico). No es base para Pensión/Salud, pero SÍ para Renta 5ta. Base Legal: Ley N° 26790.")
+            in_otros_descuentos = st.number_input("Otros Descuentos Fijos", min_value=0.0, value=0.0, step=10.0, help="Otros descuentos no relacionados a ley (ej. Cuota sindical, préstamos, adelantos).")
 
-        # (CORRECCIÓN) Movido dentro del form
         st.subheader("Parámetros Costo Empleador")
         c1_costo, c2_costo, c3_costo = st.columns(3)
         with c1_costo:
-            in_tasa_sctr = st.number_input("Tasa SCTR (%)", min_value=0.0, value=1.2, step=0.1, help="Ingrese 1.2 para 1.2%")
+            in_tasa_sctr = st.number_input("Tasa SCTR (%)", min_value=0.0, value=1.2, step=0.1, help="Tasa porcentual del Seguro Complementario de Trabajo de Riesgo. Ingrese 1.2 para 1.2%. Base Legal: D.S. N° 003-98-SA.")
         with c2_costo:
-            in_tasa_senati = st.number_input("Tasa SENATI (%)", min_value=0.0, value=0.0, step=0.75, help="Ingrese 0.75 para 0.75%")
+            in_tasa_senati = st.number_input("Tasa SENATI (%)", min_value=0.0, value=0.0, step=0.75, help="Aporte a SENATI (usualmente 0.75%) para empresas industriales. Base Legal: Ley N° 26272.")
         with c3_costo:
-            in_prima_vida = st.number_input("Prima Seguro Vida Ley (Monto S/)", min_value=0.0, value=15.0, step=1.0)
+            in_prima_vida = st.number_input("Prima Seguro Vida Ley (Monto S/)", min_value=0.0, value=15.0, step=1.0, help="Monto fijo mensual de la prima del Seguro Vida Ley. Base Legal: D.L. N° 688.")
 
+        # (NUEVO) Layout en columnas
         gastos_data = _renderizar_gastos_deducibles(key_prefix="boleta")
 
+        # (NUEVO) Layout en columnas
         with st.expander("Acumuladores Anuales (Para Renta 5ta)"):
             st.info("Para un cálculo preciso, ingrese los montos acumulados de Enero hasta el mes *anterior* al que está calculando.")
-            in_acum_r5 = st.number_input("Acumulado Bruto Renta 5ta (Sin Grati)", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_r5")
-            in_acum_salud = st.number_input("Acumulado Base Afecta a Salud", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_salud")
-            in_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta Pagadas", min_value=0.0, value=0.0, step=100.0, key="boleta_acum_ret")
+            
+            col1_ac, col2_ac, col3_ac = st.columns(3)
+            with col1_ac:
+                in_acum_r5 = st.number_input("Acumulado Bruto Renta 5ta", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_r5", help="Suma de todos los ingresos brutos afectos a Renta 5ta (incluye CNR, LPA, etc.) pagados desde Enero hasta el mes anterior.")
+            with col2_ac:
+                in_acum_salud = st.number_input("Acumulado Base Afecta a Salud", min_value=0.0, value=0.0, step=1000.0, key="boleta_acum_salud", help="Suma de la base afecta a EsSalud/EPS pagada desde Enero hasta el mes anterior. Se usa para el crédito EPS.")
+            with col3_ac:
+                in_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta", min_value=0.0, value=0.0, step=100.0, key="boleta_acum_ret", help="Suma de todas las retenciones de 5ta Categoría ya pagadas en el año.")
 
         submitted_boleta = st.form_submit_button("Calcular Boleta Mensual", type="primary")
 
@@ -1001,7 +1032,6 @@ with tab_boleta:
                 retenciones_acumuladas_renta5=in_acum_retenciones
             )
             
-            # (CORRECCIÓN v4) Usar la variable 'historial_editado_boleta'
             historial_data = EntradasHistorialSemestral(
                 ing_sobretiempo_total=historial_editado_boleta['Horas Extras (S/)'].tolist(),
                 ing_bonificacion_nocturna=historial_editado_boleta['Bono Nocturno (S/)'].tolist(),
@@ -1044,14 +1074,14 @@ with tab_boleta:
 with tab_lqbs:
     st.header("Calculadora de Liquidación (LQBS)")
 
-    # (CORRECCIÓN v4) Mover el data_editor FUERA del formulario
     with st.expander("Historial de Variables (Últimos 6 Meses para Regularidad)"):
-        st.write("Ingrese los montos de los 6 meses *anteriores* al cese (para Principio de Regularidad 3 de 6).")
+        st.warning("Ingrese los montos de los 6 meses *anteriores* al cese (para Principio de Regularidad 3 de 6). Base Legal: Art. 19, D.S. 001-97-TR.")
+        
         data_historial_lqbs = {
             'Horas Extras (S/)': [0.0] * 6,
             'Bono Nocturno (S/)': [0.0] * 6,
             'Otros Afectos (S/)': [0.0] * 6,
-            'Días Falta': [0] * 6
+            'Días Falta': [0] * 6 # Se usa para Grati Trunca
         }
         meses_semestre_lqbs = [f"Mes {i+1}" for i in range(6)]
         df_historial_lqbs = pd.DataFrame(data_historial_lqbs, index=meses_semestre_lqbs)
@@ -1061,27 +1091,32 @@ with tab_lqbs:
             key="historial_lqbs_editor"
         )
     
+    # (NUEVO) Layout en 3 columnas
     with st.form("lqbs_form"):
-        col1, col2 = st.columns(2)
-        with col1:
+        col1_lq, col2_lq, col3_lq = st.columns(3)
+        
+        with col1_lq:
             st.subheader("Datos del Cese")
             today = datetime.now().date()
-            in_lqbs_fecha_ingreso = st.date_input("Fecha de Ingreso", value=today - relativedelta(years=2, months=9, days=30))
-            in_lqbs_fecha_cese = st.date_input("Fecha de Cese", value=today)
+            in_lqbs_fecha_ingreso = st.date_input("Fecha de Ingreso", value=today - relativedelta(years=2, months=9, days=30), help="Fecha de inicio del vínculo laboral.")
+            in_lqbs_fecha_cese = st.date_input("Fecha de Cese", value=today, help="Último día de labores.")
             in_lqbs_motivo = st.selectbox("Motivo de Cese", 
                                           ['RENUNCIA', 'DESPIDO_ARBITRARIO', 'FALTA_GRAVE', 'TERMINO_CONTRATO'], 
-                                          index=1)
-        with col2:
+                                          index=1,
+                                          help="El motivo 'DESPIDO_ARBITRARIO' activa el cálculo de indemnización (Art. 38, D.S. 003-97-TR).")
+        
+        with col2_lq:
             st.subheader("Bases Computables")
-            st.caption("Ingrese las bases de cálculo según el Art. 19 del D.S. 001-97-TR.")
-            in_lqbs_rc_basica = st.number_input("RC Básica (Sueldo + Asig. Familiar)", min_value=0.0, value=5300.0, step=100.0)
-            in_lqbs_sexto_grati = st.number_input("Último 1/6 de Gratificación (para CTS)", min_value=0.0, value=(5300/6), step=10.0, format="%.2f")
+            st.caption("Bases de cálculo (Art. 19, D.S. 001-97-TR).")
+            in_lqbs_rc_basica = st.number_input("RC Básica (Sueldo + AF)", min_value=0.0, value=5300.0, step=100.0, help="Remuneración Computable básica (Sueldo + Asig. Familiar) vigente al mes de cese.")
+            in_lqbs_sexto_grati = st.number_input("Último 1/6 de Gratificación (CTS)", min_value=0.0, value=(5300/6), step=10.0, format="%.2f", help="1/6 de la última gratificación (Julio o Diciembre) percibida. Se usa para la RC de CTS.")
 
-        st.subheader("Regímenes Especiales y Faltas")
-        col1, col2, col3 = st.columns(3)
-        in_lqbs_part_time = col1.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, CTS y Vacaciones serán 0.", key="lqbs_part_time")
-        in_lqbs_pierde_record = col2.checkbox("¿Perdió Récord Vacacional?", value=False, help="Si marca esto, Vacaciones Truncas será 0.", key="lqbs_pierde_record")
-        in_lqbs_faltas_sem_trunco = col3.number_input("Faltas en Semestre Trunco", min_value=0, value=5, step=1, help="Días de falta para descuento en Grati Trunca (1/180vo).")
+        with col3_lq:
+            st.subheader("Regímenes y Faltas")
+            st.caption("Opciones que modifican el cálculo.")
+            in_lqbs_part_time = col1.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Marcar si el contrato es a tiempo parcial (menos de 4 horas diarias). Pierde derecho a CTS y Vacaciones. Base Legal: D.S. 001-97-TR y D.L. 713.", key="lqbs_part_time")
+            in_lqbs_pierde_record = col2.checkbox("¿Perdió Récord Vacacional?", value=False, help="Marcar si el trabajador no cumplió el récord vacacional (ej. +10 faltas). Pierde derecho a Vacaciones Truncas. Base Legal: Art. 10, D.L. 713.", key="lqbs_pierde_record")
+            in_lqbs_faltas_sem_trunco = col3.number_input("Faltas en Semestre Trunco", min_value=0, value=0, step=1, help="Total de días de falta en el semestre trunco (Ene-Cese o Jul-Cese). Se usa para descontar de la Grati Trunca (1/180vo). Base Legal: D.S. N° 005-2002-TR.")
 
         submitted_lqbs = st.form_submit_button("Calcular Liquidación (LQBS)", type="primary")
 
@@ -1089,7 +1124,7 @@ with tab_lqbs:
         with st.spinner("Calculando liquidación..."):
             
             datos_lqbs = EntradasLiquidacion(
-                fecha_ingreso=in_llqbs_fecha_ingreso,
+                fecha_ingreso=in_lqbs_fecha_ingreso,
                 fecha_cese=in_lqbs_fecha_cese,
                 motivo_cese=in_lqbs_motivo,
                 rc_basica=in_lqbs_rc_basica,
@@ -1100,7 +1135,6 @@ with tab_lqbs:
                 ha_perdido_record_vacacional=in_lqbs_pierde_record,
                 dias_falta_en_semestre_trunco=in_lqbs_faltas_sem_trunco
             )
-            # (CORRECCIÓN v4) Usar la variable 'historial_editado_lqbs'
             historial_data_lqbs = EntradasHistorialSemestral(
                 ing_sobretiempo_total=historial_editado_lqbs['Horas Extras (S/)'].tolist(),
                 ing_bonificacion_nocturna=historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
@@ -1120,22 +1154,23 @@ with tab_lqbs:
 # --- PESTAÑA 3: RÉGIMEN INTEGRAL (RIA) ---
 with tab_ria:
     st.header("Calculadora de Boleta Mensual (Régimen RIA)")
-    st.info(f"Régimen opcional para trabajadores con remuneración promedio superior a 2 UIT (S/ {LIMITE_MINIMO_RIA_MENSUAL:,.2f} mensual).")
+    st.info(f"Régimen opcional para trabajadores con remuneración promedio superior a 2 UIT (S/ {LIMITE_MINIMO_RIA_MENSUAL:,.2f} mensual). Base Legal: Art. 8, D.S. N° 003-97-TR.")
     
     with st.form("ria_form"):
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Datos del Empleado")
-            in_ria_paquete_anual = st.number_input("Remuneración Integral Anual (Paquete)", min_value=0.0, value=192000.0, step=1000.0)
+            in_ria_paquete_anual = st.number_input("Remuneración Integral Anual (Paquete)", min_value=0.0, value=192000.0, step=1000.0, help="Monto total anual pactado, que incluye sueldo, gratificaciones, CTS, etc.")
             in_ria_sistema_pension = st.selectbox("Sistema de Pensión", 
                                                   SISTEMAS_PENSION, 
-                                                  key="ria_pension", index=3) # (CORRECCIÓN) Key única
-            in_ria_tiene_eps = st.checkbox("¿Tiene EPS?", value=False, key="ria_eps") # (CORRECCIÓN) Key única
+                                                  key="ria_pension", index=3,
+                                                  help="Sistema de pensiones al que aporta el trabajador.")
+            in_ria_tiene_eps = st.checkbox("¿Tiene EPS?", value=False, key="ria_eps", help="Marcar si está afiliado a una EPS. Genera crédito en Renta 5ta.")
         with col2:
             st.subheader("Datos del Mes")
             in_ria_mes_nombre = st.selectbox("Mes de Cálculo", options=MESES_LISTA, index=0, key="ria_mes_nombre")
             in_ria_mes_actual = MESES_LISTA.index(in_ria_mes_nombre) + 1
-            in_ria_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta Pagadas", min_value=0.0, value=0.0, step=100.0, key="ria_acum")
+            in_ria_acum_retenciones = st.number_input("Acumulado Retenciones Renta 5ta", min_value=0.0, value=0.0, step=100.0, key="ria_acum", help="Suma de retenciones de 5ta Cat. pagadas desde Enero hasta el mes anterior.")
 
         gastos_data_ria = _renderizar_gastos_deducibles(key_prefix="ria")
 
@@ -1163,18 +1198,20 @@ with tab_ria:
 # --- PESTAÑA 4: INDEMNIZACIÓN POR VACACIONES NO GOZADAS ---
 with tab_indemnizacion:
     st.header("Calculadora de Indemnización por Vacaciones No Gozadas")
-    st.warning("Este pago aplica cuando un trabajador no disfruta de su descanso físico dentro del año siguiente a aquél en el que generó el derecho (Art. 23, D.L. N° 713).")
+    st.warning("Este pago aplica cuando un trabajador no disfruta de su descanso físico dentro del año siguiente a aquél en el que generó el derecho. Base Legal: Art. 23, D.L. N° 713.")
     
     with st.form("indemn_vacas_form"):
         col1, col2 = st.columns(2)
+        
         with col1:
             st.subheader("Datos del Cálculo")
-            in_indv_rc = st.number_input("Remuneración Computable Vacacional (RC)", min_value=0.0, value=4500.0, step=100.0)
-            in_indv_periodos = st.number_input("N° de Períodos Vencidos (No Gozados)", min_value=1, value=1, step=1)
+            in_indv_rc = st.number_input("Remuneración Computable Vacacional (RC)", min_value=0.0, value=4500.0, step=100.0, help="La Remuneración Computable para vacaciones (Sueldo + AF + Promedio Variables) vigente en el momento del pago.")
+            in_indv_periodos = st.number_input("N° de Períodos Vencidos", min_value=1, value=1, step=1, help="Número de períodos vacacionales completos que no se gozaron a tiempo.")
+            
         with col2:
             st.subheader("Regímenes y Excepciones")
-            in_indv_part_time = st.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, el pago será 0.", key="indv_part_time") # (CORRECCIÓN) Key única
-            in_indv_pierde_record = st.checkbox("¿Perdió Récord Vacacional por Faltas?", value=False, help="Si marca esto, el pago será 0.", key="indv_pierde_record") # (CORRECCIÓN) Key única
+            in_indv_part_time = st.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Si marca esto, el pago será 0 (trabajadores Part-Time no tienen derecho a vacaciones).", key="indv_part_time")
+            in_indv_pierde_record = st.checkbox("¿Perdió Récord Vacacional por Faltas?", value=False, help="Si marca esto, el pago será 0 (trabajador no llegó a generar el derecho que ahora se vencería).", key="indv_pierde_record")
 
         submitted_indv = st.form_submit_button("Calcular Indemnización", type="primary")
 
