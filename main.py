@@ -53,7 +53,7 @@ def crear_editor_historial_semestral(key_prefix: str) -> Dict[str, List[float]]:
     # 2. Usar st.data_editor para que el usuario edite la tabla
     df_historial_editado = st.data_editor(
         df_historial, 
-        num_rows_dynamic=False, # Evita que el usuario agregue/elimine filas
+        # num_rows_dynamic=False, # <- ELIMINADO: Causa TypeError en algunas versiones
         key=f"{key_prefix}_data_editor" # Clave única para esta tabla
     )
 
@@ -256,6 +256,7 @@ with tab_boleta:
         # 2. Usar st.data_editor y guardar su estado en su propia clave
         st.data_editor(
             df_historial_boleta, 
+            # num_rows_dynamic=False, # <- ELIMINADO
             key="historial_boleta_editor" # Clave única para esta tabla
         )
     # --- FIN DE LA MEJORA ---
@@ -336,7 +337,7 @@ with tab_boleta:
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
             historial_editado_boleta_dict = st.session_state.historial_boleta_editor
             
-            # --- CORRECCIÓN (v2): Convertir el dict de vuelta a un DataFrame ---
+            # --- CORRECCIÓN (v3): Convertir el dict de vuelta a un DataFrame ---
             # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
             # Debemos proveer las columnas para que Pandas lo rearme.
             columnas_historial = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
@@ -433,6 +434,7 @@ with tab_lqbs:
         # 2. Usar st.data_editor y guardar su estado
         st.data_editor(
             df_historial_lqbs, 
+            # num_rows_dynamic=False, # <- ELIMINADO
             key="historial_lqbs_editor" # Clave única
         )
     # --- FIN DE LA MEJORA ---
@@ -475,9 +477,8 @@ with tab_lqbs:
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
             historial_editado_lqbs_dict = st.session_state.historial_lqbs_editor
 
-            # --- CORRECCIÓN (v2): Convertir el dict de vuelta a un DataFrame ---
+            # --- CORRECCIÓN (v3): Convertir el dict de vuelta a un DataFrame ---
             # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
-            # Debemos proveer las columnas para que Pandas lo rearme.
             columnas_historial_lqbs = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
             historial_editado_lqbs = pd.DataFrame.from_dict(
                 historial_editado_lqbs_dict, 
