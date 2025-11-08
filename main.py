@@ -1,20 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-CALCULADORA DE PLANILLA Y BB.SS. PERÚ 2025 (App Streamlit)
+Calculadora de Planilla y Beneficios Sociales Perú 2025 (App Streamlit)
 
-Versión de archivo único (Opción B) con todos los bugs corregidos:
-- (REVISADO) Lógica de _calcular_indemnizacion_despido corregida.
-- (REVISADO) 'key' duplicados corregidos (StreamlitDuplicateElementId).
-- (REVISADO) Bug de 'st.data_editor' corregido (movido fuera del form).
-- (REVISADO) 'num_rows_dynamic' eliminado para compatibilidad.
-- (REVISADO) Inputs de SCTR/SENATI movidos dentro del form.
-- (REVISADO) Constante SISTEMAS_PENSION añadida.
-- (REVISADO) Inputs reorganizados en columnas para mayor compacidad.
-- (REVISADO) Se añadieron 'help' con bases legales a todos los inputs.
-- (REVISADO) Se ocultaron los botones +/- de los st.number_input vía CSS.
-- (REVISADO) Corregido el bug de layout en la pestaña LQBS (col3_lq).
-- (REVISADO) Mejorado el CSS para ocultar botones +/- de forma más efectiva.
-- (NUEVO) Los expanders de resultados de la boleta ahora usan columnas.
+Archivo único que combina la lógica de cálculo (Motor) y la 
+interfaz de usuario (Streamlit).
 """
 
 # --- 0. IMPORTACIONES NECESARIAS ---
@@ -31,14 +20,15 @@ from dataclasses import dataclass, field
 # ==============================================================================
 
 # --- 1. CONSTANTES GLOBALES (Valores oficiales 2025) ---
-UIT_2025 = 5350
-RMV_2025 = 1130
-PORC_ASIG_FAMILIAR = 0.10
-PORC_ESSALUD = 0.09
-PORC_ONP = 0.13
+UIT_2025 = 5350 # D.S. N° 260-2024-EF
+RMV_2025 = 1130 # D.S. N° 006-2024-TR
+PORC_ASIG_FAMILIAR = 0.10 # Ley N° 25129
+PORC_ESSALUD = 0.09 # Ley N° 26790
+PORC_ONP = 0.13 # D.L. N° 19990
 
 SISTEMAS_PENSION = ['ONP', 'INTEGRA', 'PRIMA', 'HABITAT', 'PROFUTURO']
 
+# Art. 53, D.S. N° 179-2004-EF (TUO Ley Impuesto a la Renta)
 TRAMOS_IR = [
     (5 * UIT_2025, 0.08),  # Hasta 26,750
     (20 * UIT_2025, 0.14), # Hasta 107,000
@@ -47,30 +37,30 @@ TRAMOS_IR = [
     (float('inf'), 0.30)   # Más de 240,750
 ]
 
-BONI_LEY_ESSALUD = 0.09
+BONI_LEY_ESSALUD = 0.09 # Ley N° 30334
 BONI_LEY_EPS = 0.0675
-CREDITO_POR_EPS = 0.09 * 0.25 # 2.25%
+CREDITO_POR_EPS = 0.09 * 0.25 # 2.25% (Art. 33, Ley N° 26790)
 
-TASA_SOBRETIEMPO_25 = 0.25
+TASA_SOBRETIEMPO_25 = 0.25 # Art. 9, D.S. N° 007-2002-TR
 TASA_SOBRETIEMPO_35 = 0.35
 TASA_SOBRETIEMPO_100 = 1.0
 
-TASA_BONIFICACION_NOCTURNA = 0.35
+TASA_BONIFICACION_NOCTURNA = 0.35 # Art. 8, D.S. N° 007-2002-TR
 
 TASA_APORTE_AFP = 0.10
-TASA_PRIMA_SEGURO_AFP = 0.0174
-TOPE_MAXIMO_ASEGURABLE_AFP_2025 = 12234.34 
+TASA_PRIMA_SEGURO_AFP = 0.0174 # Tasa promedio, varía por AFP
+TOPE_MAXIMO_ASEGURABLE_AFP_2025 = 12234.34 # Se actualiza trimestralmente por SBS
 
-LIMITE_3_UIT = 3 * UIT_2025 # 16,050
+LIMITE_3_UIT = 3 * UIT_2025 # 16,050 (Art. 46, LIR)
 
-LIMITE_MINIMO_RIA_UIT = 2.0
+LIMITE_MINIMO_RIA_UIT = 2.0 # Art. 8, D.S. N° 003-97-TR
 LIMITE_MINIMO_RIA_MENSUAL = LIMITE_MINIMO_RIA_UIT * UIT_2025 # 10,700
 
 
 # ==============================================================================
 # --- 2. CLASES DE DATOS (DATACLASSES) ---
 # ==============================================================================
-# Usamos dataclasses para agrupar parámetros y hacer el código más limpio.
+# Agrupamos los parámetros de entrada en Dataclasses para un código más limpio.
 
 @dataclass
 class EntradasEmpleado:
@@ -150,20 +140,24 @@ class EntradasRIA:
 # ==============================================================================
 
 def calcular_valor_hora(sueldo_basico: float) -> float:
+    """Calcula el valor de una hora ordinaria (Base: 240h/mes)."""
     if sueldo_basico <= 0:
         return 0
     return (sueldo_basico / 30) / 8
 
 def calcular_sobretiempo(valor_hora: float, horas_25: float, horas_35: float, horas_100: float = 0.0) -> Tuple[float, float, float, float]:
+    """Calcula el monto total de horas extras (sobretiempo)."""
     monto_25 = horas_25 * valor_hora * (1 + TASA_SOBRETIEMPO_25)
     monto_35 = horas_35 * valor_hora * (1 + TASA_SOBRETIEMPO_35)
     monto_100 = horas_100 * valor_hora * (1 + TASA_SOBRETIEMPO_100) 
     return (monto_25 + monto_35 + monto_100), monto_25, monto_35, monto_100
 
 def calcular_asignacion_familiar(tiene_hijos: bool) -> float:
+    """Calcula la asignación familiar (10% de la RMV)."""
     return RMV_2025 * PORC_ASIG_FAMILIAR if tiene_hijos else 0
 
 def calcular_bonificacion_nocturna(valor_hora: float, horas_nocturnas_mes: float) -> float:
+    """Calcula la bonificación nocturna (35% sobretasa)."""
     if horas_nocturnas_mes <= 0 or valor_hora <= 0:
         return 0
     sobretasa_nocturna_por_hora = valor_hora * TASA_BONIFICACION_NOCTURNA
@@ -174,6 +168,7 @@ def calcular_bonificacion_nocturna(valor_hora: float, horas_nocturnas_mes: float
 # ==============================================================================
 
 def calcular_descuento_pension(sueldo_bruto_afecto: float, sistema_pension: str) -> float:
+    """Calcula el descuento de AFP (con TMA) u ONP."""
     sistema_pension = sistema_pension.upper()
     if sistema_pension == 'ONP':
         return sueldo_bruto_afecto * PORC_ONP
@@ -190,6 +185,7 @@ def _calcular_impuesto_anual_por_tramos(
     proyeccion_base_salud_anual: float, 
     tiene_eps: bool = False
 ) -> float:
+    """Función interna: Calcula el impuesto anual por tramos y aplica crédito EPS."""
     impuesto_anual = 0
     renta_acumulada_para_tramos = 0
     for limite, tasa in TRAMOS_IR:
@@ -211,9 +207,12 @@ def calcular_retencion_renta_quinta(
     mes_actual_num: int = 1, 
     retenciones_acumuladas: float = 0.0
 ) -> float:
+    """Calcula la retención de 5ta categoría para el mes actual."""
+    
     renta_bruta = ingresos_proyectados_anuales
     deduccion_7_uit = 7 * UIT_2025
     
+    # Deducción de 3 UIT adicionales (Art. 46, TUO LIR)
     deduccion_arrendamiento = gastos.arrendamiento * 0.30
     deduccion_honorarios_medicos = gastos.honorarios_medicos * 0.30
     deduccion_servicios_profesionales = gastos.servicios_profesionales * 0.30
@@ -235,6 +234,7 @@ def calcular_retencion_renta_quinta(
         tiene_eps
     )
     
+    # Lógica de Recálculo (Periodos Fijos SUNAT - Art. 40, D.S. N° 003-2007-EF)
     impuesto_restante_por_pagar = impuesto_anual_proyectado - retenciones_acumuladas
     
     if mes_actual_num <= 3:
@@ -255,6 +255,7 @@ def calcular_retencion_renta_quinta(
 # ==============================================================================
 
 def _calcular_promedio_regularidad(historial: EntradasHistorialSemestral) -> float:
+    """Aplica el Principio de Regularidad (3 de 6 meses) para Grati/CTS."""
     promedio_total = 0.0
     historial_dict = {
         'ing_sobretiempo_total': historial.ing_sobretiempo_total,
@@ -276,6 +277,7 @@ def calcular_gratificacion(
     tiene_eps: bool = False,
     dias_falta_semestre: int = 0
 ) -> Tuple[float, float]:
+    """Calcula una gratificación semestral con descuento por faltas (1/180vo)."""
     if meses_completos <= 0:
         return 0, 0
     grati_bruta = (sueldo_computable / 6) * meses_completos
@@ -286,6 +288,7 @@ def calcular_gratificacion(
     return grati_neta_a_pagar, bonificacion
 
 def calcular_cts_semestral(remuneracion_computable_cts: float, meses_completos: int) -> float:
+    """Calcula el depósito de CTS semestral (Base Legal: D.S. N° 001-97-TR)."""
     if meses_completos <= 0:
         return 0
     return (remuneracion_computable_cts / 12) * meses_completos
@@ -301,6 +304,7 @@ def _calcular_proyecciones_renta_quinta(
     base_renta_quinta_mes: float,
     base_pension_salud_mes: float
 ) -> Tuple[float, float]:
+    """Función interna para modularizar la lógica de proyección anual."""
     
     valor_hora_nominal = calcular_valor_hora(empleado.sueldo_basico_nominal)
     bn_proyectado_fijo = 0
@@ -312,7 +316,7 @@ def _calcular_proyecciones_renta_quinta(
     base_proy_nominal_rem_R5 = (
         empleado.sueldo_basico_nominal + 
         calcular_asignacion_familiar(empleado.tiene_hijos) + 
-        mes.otros_ingresos_afectos +
+        mes.otros_ingresos_afectos + # Se asume que este bono se repite
         bn_proyectado_fijo 
     )
     base_proy_nominal_no_rem_R5 = mes.ingresos_no_remunerativos + mes.ingreso_lpa
@@ -337,9 +341,11 @@ def generar_boleta_mensual(
     gastos: EntradasGastosDeducibles,
     historial: EntradasHistorialSemestral
 ) -> Dict[str, Any]:
+    """Genera un cálculo detallado de una boleta de pago mensual."""
     
     boleta: Dict[str, Any] = {} 
 
+    # --- 1. CÁLCULO DE INGRESOS MENSUALES ---
     valor_dia = empleado.sueldo_basico_nominal / 30
     desc_faltas = valor_dia * mes.dias_falta
     ing_basico_ajustado = empleado.sueldo_basico_nominal - desc_faltas
@@ -368,6 +374,7 @@ def generar_boleta_mensual(
     boleta['ingreso_utilidades'] = mes.ingreso_utilidades
     boleta['ingreso_subsidio'] = mes.ingreso_subsidio
     
+    # Gratificación (si corresponde)
     ing_gratificacion = 0.0
     ing_boni_ley = 0.0
     es_mes_grati = (mes.mes_actual_num == 7 or mes.mes_actual_num == 12)
@@ -389,6 +396,7 @@ def generar_boleta_mensual(
     boleta['ing_boni_ley'] = ing_boni_ley
     boleta['dias_falta_semestre_grati'] = dias_faltas_totales_semestre
     
+    # --- 2. CÁLCULO DE BASES AFECTAS (Este Mes) ---
     base_pension_salud_mes = (
         ing_basico_ajustado + ing_asig_familiar + ing_bonificacion_nocturna + 
         ing_sobretiempo_total + mes.otros_ingresos_afectos
@@ -405,19 +413,20 @@ def generar_boleta_mensual(
     boleta['base_pension_salud_mes'] = base_pension_salud_mes
     boleta['base_renta_quinta_mes'] = base_renta_quinta_mes
 
+    # --- 3. PROYECCIÓN ANUAL (RENTA 5TA) ---
     proyeccion_anual_r5, proyeccion_base_salud_anual = _calcular_proyecciones_renta_quinta(
         empleado, mes, acumulados,
         base_renta_quinta_mes=base_renta_quinta_mes,
         base_pension_salud_mes=base_pension_salud_mes
     )
-    
     boleta['proyeccion_anual_r5'] = proyeccion_anual_r5
     boleta['proyeccion_base_salud_anual'] = proyeccion_base_salud_anual
     
+    # --- 4. CÁLCULO DE DESCUENTOS ---
     desc_pension = calcular_descuento_pension(base_pension_salud_mes, empleado.sistema_pension)
     boleta['desc_pension'] = desc_pension
     
-    desc_lpa = mes.ingreso_lpa
+    desc_lpa = mes.ingreso_lpa # Descuento neto cero
     boleta['desc_lpa'] = desc_lpa
     
     desc_renta_quinta = calcular_retencion_renta_quinta(
@@ -431,6 +440,7 @@ def generar_boleta_mensual(
     boleta['desc_renta_quinta'] = desc_renta_quinta
     boleta['otros_descuentos_fijos'] = mes.otros_descuentos_fijos
     
+    # --- 5. TOTALES ---
     total_descuentos = (
         desc_pension + desc_renta_quinta + desc_lpa + mes.otros_descuentos_fijos 
     )
@@ -441,6 +451,7 @@ def generar_boleta_mensual(
     boleta['sistema_pension'] = empleado.sistema_pension
     boleta['tiene_eps'] = empleado.tiene_eps
 
+    # --- 6. RATIOS ---
     boleta['ratio_neto_vs_bruto'] = (neto_a_pagar / total_ingresos_boleta) if total_ingresos_boleta > 0 else 0.0
     boleta['ratio_neto_vs_sueldo_nominal'] = (neto_a_pagar / empleado.sueldo_basico_nominal) if empleado.sueldo_basico_nominal > 0 else 0.0
 
@@ -451,15 +462,17 @@ def generar_boleta_mensual(
 # ==============================================================================
 
 def _calcular_tiempo_servicio(fecha_inicio: datetime.date, fecha_fin: datetime.date) -> relativedelta:
+    """Helper: Calcula el tiempo total de servicio usando relativedelta."""
     try:
         inicio = fecha_inicio
-        fin = fecha_fin + relativedelta(days=1)
+        fin = fecha_fin + relativedelta(days=1) # El cese es inclusivo
         return relativedelta(fin, inicio)
     except Exception as e:
         print(f"Error al calcular tiempo de servicio: {e}.")
         return relativedelta()
 
 def _calcular_truncos_cts(rc_cts: float, fecha_ingreso: datetime.date, fecha_cese: datetime.date) -> Tuple[float, int, int]:
+    """Calcula la CTS Trunca (desde el último depósito 1-May o 1-Nov)."""
     if 5 <= fecha_cese.month <= 10:
         inicio_periodo_cts = datetime(fecha_cese.year, 5, 1).date()
     else:
@@ -479,6 +492,7 @@ def _calcular_truncos_grati(
     fecha_cese: datetime.date,
     dias_falta_en_semestre_trunco: int = 0
 ) -> Tuple[float, int, float]:
+    """Calcula la Gratificación Trunca (desde el inicio del semestre 1-Ene o 1-Jul)."""
     if 1 <= fecha_cese.month <= 6:
         inicio_semestre = datetime(fecha_cese.year, 1, 1).date()
     else:
@@ -496,6 +510,7 @@ def _calcular_truncos_vacaciones(
     fecha_cese: datetime.date,
     ha_perdido_record_vacacional: bool = False
 ) -> Tuple[float, int, int]:
+    """Calcula las Vacaciones Truncas (desde el último aniversario)."""
     if ha_perdido_record_vacacional:
         return 0.0, 0, 0
     ultimo_aniversario = datetime(fecha_cese.year, fecha_ingreso.month, fecha_ingreso.day).date()
@@ -512,7 +527,7 @@ def _calcular_indemnizacion_despido(
     fecha_ingreso: datetime.date, 
     fecha_cese: datetime.date
 ) -> Tuple[float, int, int, int]:
-    """(CORREGIDO) Calcula la indemnización por despido arbitrario."""
+    """Calcula la indemnización por despido arbitrario (Tope 12 sueldos)."""
     delta = relativedelta(fecha_cese + relativedelta(days=1), fecha_ingreso)
     anios_completos = delta.years
     meses_completos = delta.months
@@ -536,6 +551,7 @@ def generar_liquidacion(
     opciones: OpcionesLiquidacion,
     historial: EntradasHistorialSemestral
 ) -> Dict[str, Any]:
+    """Genera el cálculo completo de una Liquidación de Beneficios Sociales (LQBS)."""
     
     lqbs = {
         'fecha_ingreso': datos.fecha_ingreso,
@@ -546,6 +562,7 @@ def generar_liquidacion(
         'dias_falta_en_semestre_trunco': opciones.dias_falta_en_semestre_trunco
     }
 
+    # 1. Definir Remuneraciones Computables (RC)
     promedio_regularidad_lqbs = _calcular_promedio_regularidad(historial)
     lqbs['promedio_variables_regulares'] = promedio_regularidad_lqbs
     
@@ -555,6 +572,7 @@ def generar_liquidacion(
     rc_cts = rc_grati_vacas + datos.ultimo_sexto_grati
     lqbs['rc_cts'] = rc_cts
     
+    # 2. Calcular Beneficios Truncos
     lqbs['cts_trunca'], lqbs['cts_meses'], lqbs['cts_dias'] = _calcular_truncos_cts(rc_cts, datos.fecha_ingreso, datos.fecha_cese)
     
     lqbs['grati_trunca'], lqbs['grati_meses'], lqbs['grati_desc_faltas'] = _calcular_truncos_grati(
@@ -565,6 +583,7 @@ def generar_liquidacion(
         opciones.ha_perdido_record_vacacional
     )
     
+    # Aplicar validación de régimen Part-Time
     if opciones.es_part_time_lt_4h:
         lqbs['cts_trunca'] = 0.0
         lqbs['vacas_truncas'] = 0.0
@@ -575,6 +594,7 @@ def generar_liquidacion(
     total_beneficios_truncos = lqbs['cts_trunca'] + lqbs['grati_trunca'] + lqbs['vacas_truncas']
     lqbs['total_beneficios_truncos'] = total_beneficios_truncos
     
+    # 3. Calcular Indemnización (si aplica)
     indemnizacion = 0.0
     if datos.motivo_cese.upper() == 'DESPIDO_ARBITRARIO':
         indemnizacion, anios, meses, dias = _calcular_indemnizacion_despido(
@@ -585,6 +605,7 @@ def generar_liquidacion(
         lqbs['indemnizacion_dias'] = dias
     lqbs['indemnizacion_despido'] = indemnizacion
     
+    # 4. Total a Pagar
     lqbs['total_liquidacion'] = total_beneficios_truncos + indemnizacion
     return lqbs
 
@@ -597,6 +618,7 @@ def calcular_costo_laboral_mensual(
     tasa_senati: float = 0.0,
     prima_vida_ley: float = 0.0
 ) -> Dict[str, Any]:
+    """Calcula los aportes mensuales del empleador (Costo Laboral)."""
     
     costos = {}
     base_afecta_salud = boleta['base_pension_salud_mes']
@@ -637,6 +659,7 @@ def generar_boleta_ria(
     datos: EntradasRIA,
     gastos: EntradasGastosDeducibles
 ) -> Dict[str, Any]:
+    """Genera un cálculo de boleta para el régimen RIA."""
     
     boleta_ria = {}
     pago_mensual_integral = datos.remuneracion_integral_anual / 12
@@ -685,6 +708,7 @@ def calcular_indemnizacion_vacaciones_no_gozadas(
     es_part_time_lt_4h: bool = False,
     ha_perdido_record_vacacional: bool = False
 ) -> Dict[str, Any]:
+    """Calcula la indemnización por vacaciones no gozadas (la "triple" vacación)."""
     
     info_adicional = None
     if es_part_time_lt_4h:
@@ -725,14 +749,10 @@ MESES_LISTA = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 def _renderizar_gastos_deducibles(key_prefix: str) -> EntradasGastosDeducibles:
-    """
-    (NUEVO) Helper reutilizable para mostrar el expander de Gastos Deducibles
-    en un layout de columnas.
-    """
+    """Helper reutilizable para mostrar el expander de Gastos Deducibles en columnas."""
     with st.expander("Gastos Deducibles (3 UIT Anuales) - Art. 46, LIR"):
         st.caption("Ingrese el total gastado en el año. El sistema calculará el % deducible.")
         
-        # (NUEVO) Layout en columnas
         col1, col2, col3 = st.columns(3)
         with col1:
             in_gastos_restaurantes = st.number_input(
@@ -753,7 +773,6 @@ def _renderizar_gastos_deducibles(key_prefix: str) -> EntradasGastosDeducibles:
                 help="Base Legal: Art. 46, LIR. Se deduce el 30% de honorarios a médicos y odontólogos."
             )
 
-        # (NUEVO) Segunda fila de columnas
         col4, col5 = st.columns([2, 1])
         with col4:
             in_gastos_profesionales = st.number_input(
@@ -777,6 +796,7 @@ def _renderizar_gastos_deducibles(key_prefix: str) -> EntradasGastosDeducibles:
         )
 
 def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
+    """Muestra los resultados de la boleta en la UI de Streamlit."""
     st.header(f"Resultados de la Boleta ({MESES_LISTA[mes_num-1]})")
     
     col1, col2, col3 = st.columns(3)
@@ -789,7 +809,7 @@ def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
     col1.metric("Neto vs. Sueldo Nominal", f"{boleta['ratio_neto_vs_sueldo_nominal']:.2%}", help="Cuánto recibe el trabajador por cada S/ 1.00 de sueldo básico.")
     col2.metric("Neto vs. Bruto Total", f"{boleta['ratio_neto_vs_bruto']:.2%}", help="Qué porcentaje del ingreso bruto total se convierte en dinero 'en el bolsillo'.")
 
-    # (NUEVO) Desglose de ingresos en columnas
+    # Desglose de ingresos en columnas
     with st.expander("Ver Desglose de Ingresos"):
         col1_ing, col2_ing = st.columns(2)
         with col1_ing:
@@ -808,7 +828,6 @@ def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
             st.markdown(f"**Utilidades:** `S/ {boleta['ingreso_utilidades']:,.2f}`")
             st.markdown(f"**Subsidio (DM):** `S/ {boleta['ingreso_subsidio']:,.2f}`")
         
-        # Gratificación se mantiene a lo ancho por su importancia
         if boleta['ing_gratificacion'] > 0:
             st.divider()
             st.success(f"**Gratificación:** `S/ {boleta['ing_gratificacion']:,.2f}`")
@@ -817,7 +836,7 @@ def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
                 st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;(Desc. Faltas {boleta['dias_falta_semestre_grati']} días * 1/180vo)")
             st.success(f"**Bonificación Ley:** `S/ {boleta['ing_boni_ley']:,.2f}`")
             
-    # (NUEVO) Desglose de descuentos en columnas
+    # Desglose de descuentos en columnas
     with st.expander("Ver Desglose de Descuentos"):
         col1_desc, col2_desc = st.columns(2)
         with col1_desc:
@@ -838,6 +857,7 @@ def mostrar_boleta_streamlit(boleta: Dict[str, Any], mes_num: int):
         st.json(boleta)
 
 def mostrar_liquidacion_streamlit(lqbs: Dict[str, Any]):
+    """Toma el diccionario de LQBS y lo imprime en la UI de Streamlit."""
     st.header(f"Resultados de la Liquidación (LQBS)")
     st.metric("Total Liquidación a Pagar", f"S/ {lqbs['total_liquidacion']:,.2f}")
     st.info(f"**Cálculo para:** {lqbs['motivo_cese']} | **Ingreso:** {lqbs['fecha_ingreso']} | **Cese:** {lqbs['fecha_cese']}")
@@ -880,6 +900,7 @@ def mostrar_liquidacion_streamlit(lqbs: Dict[str, Any]):
         st.json(lqbs_json)
 
 def mostrar_boleta_ria_streamlit(boleta: Dict[str, Any], mes_num: int):
+    """Imprime la boleta simplificada del régimen RIA."""
     st.header(f"Resultados de la Boleta RIA ({MESES_LISTA[mes_num-1]})")
     if 'error' in boleta:
         st.error(boleta['error'])
@@ -896,6 +917,7 @@ def mostrar_boleta_ria_streamlit(boleta: Dict[str, Any], mes_num: int):
         st.json(boleta)
 
 def mostrar_indemnizacion_vacaciones_streamlit(indemnizacion: Dict[str, Any]):
+    """Imprime el reporte de la indemnización vacacional."""
     st.header(f"Resultados de la Indemnización Vacacional")
     st.caption(f"Base Legal: Art. 23, D.L. N° 713")
     if indemnizacion.get('info_adicional'):
@@ -913,13 +935,14 @@ def mostrar_indemnizacion_vacaciones_streamlit(indemnizacion: Dict[str, Any]):
 # === INICIO DE LA APLICACIÓN STREAMLIT ===
 # ==============================================================================
 
+# --- Configuración de la Página ---
 st.set_page_config(
     layout="wide",
     page_title="Calculadora de Planilla Perú 2025",
     page_icon="🇵🇪"
 )
 
-# (NUEVO) CSS mejorado para ocultar los botones +/- en los st.number_input
+# CSS para ocultar los botones +/- en st.number_input
 st.markdown("""
     <style>
     /* Oculta los botones de subida/bajada dentro de stNumberInput */
@@ -942,6 +965,7 @@ st.markdown("""
 st.title("Calculadora de Planilla y BB.SS. Perú 2025")
 st.info("Herramienta de cálculo referencial basada en la legislación peruana vigente a 2025.")
 
+# --- Definición de Pestañas ---
 tab_boleta, tab_lqbs, tab_ria, tab_indemnizacion = st.tabs([
     "Calculadora de Boleta Mensual (Régimen 728)", 
     "Calculadora de Liquidación (LQBS)", 
@@ -967,6 +991,7 @@ with tab_boleta:
         meses_semestre_boleta = [f"Mes {i+1}" for i in range(6)]
         df_historial_boleta = pd.DataFrame(data_historial_boleta, index=meses_semestre_boleta)
 
+        # Capturar el DataFrame editado devuelto por la función
         historial_editado_boleta = st.data_editor(
             df_historial_boleta, 
             key="historial_boleta_editor"
@@ -1014,10 +1039,10 @@ with tab_boleta:
         with c3_costo:
             in_prima_vida = st.number_input("Prima Seguro Vida Ley (Monto S/)", min_value=0.0, value=15.0, step=1.0, help="Monto fijo mensual de la prima del Seguro Vida Ley. Base Legal: D.L. N° 688.")
 
-        # (NUEVO) Layout en columnas
+        # Layout en columnas para Gastos Deducibles
         gastos_data = _renderizar_gastos_deducibles(key_prefix="boleta")
 
-        # (NUEVO) Layout en columnas
+        # Layout en columnas para Acumuladores
         with st.expander("Acumuladores Anuales (Para Renta 5ta)"):
             st.info("Para un cálculo preciso, ingrese los montos acumulados de Enero hasta el mes *anterior* al que está calculando.")
             
@@ -1035,6 +1060,7 @@ with tab_boleta:
     if submitted_boleta:
         with st.spinner("Calculando boleta..."):
             
+            # 1. Poblar los dataclasses con los inputs del formulario
             empleado_data = EntradasEmpleado(
                 sueldo_basico_nominal=in_sueldo_basico,
                 tiene_hijos=in_tiene_hijos,
@@ -1059,20 +1085,25 @@ with tab_boleta:
                 retenciones_acumuladas_renta5=in_acum_retenciones
             )
             
+            # El DataFrame 'historial_editado_boleta' ya está disponible desde fuera del form
             historial_data = EntradasHistorialSemestral(
                 ing_sobretiempo_total=historial_editado_boleta['Horas Extras (S/)'].tolist(),
                 ing_bonificacion_nocturna=historial_editado_boleta['Bono Nocturno (S/)'].tolist(),
                 otros_ingresos_afectos=historial_editado_boleta['Otros Afectos (S/)'].tolist(),
                 dias_falta=historial_editado_boleta['Días Falta'].tolist()
             )
+            # 'gastos_data' ya es un dataclass (viene del helper)
 
+            # 2. Llamar a la lógica con los dataclasses
             boleta_calculada = generar_boleta_mensual(
                 empleado=empleado_data, mes=mes_data, acumulados=acumulados_data,
                 gastos=gastos_data, historial=historial_data
             )
             
+            # 3. Mostrar resultados
             mostrar_boleta_streamlit(boleta_calculada, in_mes_actual)
             
+            # 4. Calcular y mostrar costo laboral
             st.header(f"Costo Laboral del Empleador ({MESES_LISTA[in_mes_actual-1]})")
             costo_empleador = calcular_costo_laboral_mensual(
                 boleta=boleta_calculada,
@@ -1113,12 +1144,12 @@ with tab_lqbs:
         meses_semestre_lqbs = [f"Mes {i+1}" for i in range(6)]
         df_historial_lqbs = pd.DataFrame(data_historial_lqbs, index=meses_semestre_lqbs)
 
+        # Capturar el DataFrame editado devuelto por la función
         historial_editado_lqbs = st.data_editor(
             df_historial_lqbs, 
             key="historial_lqbs_editor"
         )
     
-    # (NUEVO) Layout en 3 columnas
     with st.form("lqbs_form"):
         col1_lq, col2_lq, col3_lq = st.columns(3)
         
@@ -1141,7 +1172,6 @@ with tab_lqbs:
         with col3_lq:
             st.subheader("Regímenes y Faltas")
             st.caption("Opciones que modifican el cálculo.")
-            # (CORRECCIÓN) Widgets asignados a 'col3_lq'
             in_lqbs_part_time = col3_lq.checkbox("¿Es Part-Time (< 4h/día)?", value=False, help="Marcar si el contrato es a tiempo parcial (menos de 4 horas diarias). Pierde derecho a CTS y Vacaciones. Base Legal: D.S. 001-97-TR y D.L. 713.", key="lqbs_part_time")
             in_lqbs_pierde_record = col3_lq.checkbox("¿Perdió Récord Vacacional?", value=False, help="Marcar si el trabajador no cumplió el récord vacacional (ej. +10 faltas). Pierde derecho a Vacaciones Truncas. Base Legal: Art. 10, D.L. 713.", key="lqbs_pierde_record")
             in_lqbs_faltas_sem_trunco = col3_lq.number_input("Faltas en Semestre Trunco", min_value=0, value=0, step=1, help="Total de días de falta en el semestre trunco (Ene-Cese o Jul-Cese). Se usa para descontar de la Grati Trunca (1/180vo). Base Legal: D.S. N° 005-2002-TR.")
@@ -1165,7 +1195,7 @@ with tab_lqbs:
             )
             historial_data_lqbs = EntradasHistorialSemestral(
                 ing_sobretiempo_total=historial_editado_lqbs['Horas Extras (S/)'].tolist(),
-                ing_bonificacion_nocturna=historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
+                ing_bonificacion_nocturna=historial_editado_llqbs['Bono Nocturno (S/)'].tolist(),
                 otros_ingresos_afectos=historial_editado_lqbs['Otros Afectos (S/)'].tolist(),
                 dias_falta=historial_editado_lqbs['Días Falta'].tolist()
             )
