@@ -336,9 +336,15 @@ with tab_boleta:
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
             historial_editado_boleta_dict = st.session_state.historial_boleta_editor
             
-            # --- CORRECCIÓN: Convertir el dict de vuelta a un DataFrame ---
-            # El state se guarda como un dict { 'Mes 1': {...}, 'Mes 2': {...} }
-            historial_editado_boleta = pd.DataFrame.from_dict(historial_editado_boleta_dict, orient='index')
+            # --- CORRECCIÓN (v2): Convertir el dict de vuelta a un DataFrame ---
+            # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
+            # Debemos proveer las columnas para que Pandas lo rearme.
+            columnas_historial = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
+            historial_editado_boleta = pd.DataFrame.from_dict(
+                historial_editado_boleta_dict, 
+                orient='index',
+                columns=columnas_historial
+            )
             
             historial_semestral_completo = {
                 'ing_sobretiempo_total': historial_editado_boleta['Horas Extras (S/)'].tolist(),
@@ -469,8 +475,15 @@ with tab_lqbs:
             # --- MEJORA: Recolectar datos del editor desde st.session_state ---
             historial_editado_lqbs_dict = st.session_state.historial_lqbs_editor
 
-            # --- CORRECCIÓN: Convertir el dict de vuelta a un DataFrame ---
-            historial_editado_lqbs = pd.DataFrame.from_dict(historial_editado_lqbs_dict, orient='index')
+            # --- CORRECCIÓN (v2): Convertir el dict de vuelta a un DataFrame ---
+            # El state se guarda como un dict { 'Mes 1': [v1, v2, v3, v4], ... }
+            # Debemos proveer las columnas para que Pandas lo rearme.
+            columnas_historial_lqbs = ['Horas Extras (S/)', 'Bono Nocturno (S/)', 'Otros Afectos (S/)', 'Días Falta']
+            historial_editado_lqbs = pd.DataFrame.from_dict(
+                historial_editado_lqbs_dict, 
+                orient='index',
+                columns=columnas_historial_lqbs
+            )
 
             historial_lqbs_completo = {
                 'ing_sobretiempo_total': historial_editado_lqbs['Horas Extras (S/)'].tolist(),
