@@ -1195,7 +1195,7 @@ with tab_lqbs:
             )
             historial_data_lqbs = EntradasHistorialSemestral(
                 ing_sobretiempo_total=historial_editado_lqbs['Horas Extras (S/)'].tolist(),
-                ing_bonificacion_nocturna=historial_editado_llqbs['Bono Nocturno (S/)'].tolist(),
+                ing_bonificacion_nocturna=historial_editado_lqbs['Bono Nocturno (S/)'].tolist(),
                 otros_ingresos_afectos=historial_editado_lqbs['Otros Afectos (S/)'].tolist(),
                 dias_falta=historial_editado_lqbs['Días Falta'].tolist()
             )
